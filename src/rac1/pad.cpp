@@ -24,6 +24,9 @@ struct PadState {
 PadState g_pad;
 bool g_was_held = false;
 CrossTrick g_cross; // setting trick_button "x"
+// Jak buffers a jump pressed this close to the landing (recently-pressed?, 15 frames): 0.25 s in
+// the board's clock (300 ticks a second). A Cross press nearer the ground stays a jump.
+constexpr jak::TimeFrame kCrossBufferTicks = 75;
 
 bool toggle_held(uint16_t held) {
     switch (settings().toggle) {
@@ -47,14 +50,25 @@ uint16_t toggle_bits() {
 
 // The pad as the board reads it: Cross jumps, the trick, grind and grab buttons are Jak II's R1,
 // Circle and L1. The rest (Circle, Square, Triangle) stay the game's.
-uint16_t jak_buttons(const jak::Target& t, bool toggle) {
+uint16_t jak_buttons(jak::Target& t, bool toggle) {
     const uint16_t held = g_pad.held & static_cast<uint16_t>(~toggle_bits());
     uint16_t b = held & jak::pad::x;
     const Settings& s = settings();
     const bool grind = s.grind.held(held);
-    // R1 and Cross grind, not flip: a trick button inside the grind's buttons does no trick then.
-    const bool trick = s.trick_on_cross ? g_cross.step((held & jak::pad::x) != 0, !jak::board_on_ground_p(t), g_pad.sticks[2], g_pad.sticks[3]) && !(grind && (s.grind.bits() & jak::pad::x))
-                                        : s.trick.held(held) && !(grind && (s.grind.bits() & s.trick.bits()));
+    bool trick;
+    if (s.trick_on_cross) {
+        const bool cross = (held & jak::pad::x) != 0;
+        const bool in_air = !jak::board_on_ground_p(t);
+        // Only a press can start a trick, and not while grinding (Cross then jumps off the rail).
+        const bool may_own = cross && !g_cross.prev && in_air && !grind &&
+                             jak::target_time_to_ground(t) >= kCrossBufferTicks;
+        // R1 or R2 with Cross grind, as on R1: the grind wins.
+        trick = g_cross.step(cross, in_air, may_own) && !(grind && (s.grind.bits() & jak::pad::x));
+        if (g_cross.hide_cross()) b &= static_cast<uint16_t>(~jak::pad::x);
+    } else {
+        // R1 and Cross grind, not flip: a trick button inside the grind's buttons does no trick then.
+        trick = s.trick.held(held) && !(grind && (s.grind.bits() & s.trick.bits()));
+    }
     if (trick) b |= jak::pad::r1;                // spins and flips
     if (grind) b |= jak::pad::circle;            // grind
     if (s.grab.held(held)) b |= jak::pad::l1;    // duck and grabs
@@ -114,7 +128,7 @@ bool toggle_pressed() {
 
 uint8_t pad_right_x() { return g_pad.valid ? g_pad.sticks[0] : 128; }
 
-void reset_pad_tricks() { g_cross.reset(g_pad.sticks[2], g_pad.sticks[3]); }
+void reset_pad_tricks() { g_cross.reset((g_pad.held & jak::pad::x) != 0); }
 
 void feed_pad(jak::Target& t, bool toggle) {
     jak::cpad_set_hw(t.pad, jak_buttons(t, toggle), g_pad.sticks[0], g_pad.sticks[1], g_pad.sticks[2], g_pad.sticks[3]);

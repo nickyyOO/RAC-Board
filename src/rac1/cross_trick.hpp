@@ -1,39 +1,35 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Mateusz Kłysz
-// Setting trick_button "x": Cross held in the air does the spins and flips.
+// Setting trick_button "x": a second Cross press in the air, held, does the spins and flips.
 #pragma once
-
-#include <cstdint>
-#include <cstdlib>
 
 namespace rac1 {
 
-// When the board's R1 (spins, flips) is held with the trick on Cross. The trick starts when the
-// left stick moves into a trick dead zone (64 sideways, 96 up or down, as target-board-spin-check
-// reads it) while Cross is held in the air. A stick already pushed at take-off (steering) starts
-// nothing until it moves again. Once started, it lasts until Cross is let go or the board lands.
+// The jump takes the first Cross press, on the ground. Let go and press Cross again in the air, and
+// while it is held it is the board's R1 (spins, flips) instead of Cross: Jak's kick in the air and
+// the jump it would buffer for the landing do not see it. The caller says if this frame's press may
+// start a trick (`may_own`): not shortly before the landing, so a jump pressed early still comes,
+// and not while grinding, where Cross jumps off the rail.
 struct CrossTrick {
-    bool on = false;
-    bool side = false; // the stick in the sideways zone last frame
-    bool fore = false; // the stick in the up/down zone last frame
+    bool prev = false;  // Cross held last frame
+    bool owned = false; // this Cross hold is the trick's, until Cross is let go
 
-    // A new ride: the stick as it is now counts as already pushed.
-    void reset(uint8_t lx, uint8_t ly) {
-        on = false;
-        side = std::abs(128 - static_cast<int>(lx)) >= 64;
-        fore = std::abs(128 - static_cast<int>(ly)) >= 96;
+    // A new ride: a Cross already held is not a press.
+    void reset(bool cross) {
+        prev = cross;
+        owned = false;
     }
 
-    bool step(bool cross, bool in_air, uint8_t lx, uint8_t ly) {
-        const bool s = std::abs(128 - static_cast<int>(lx)) >= 64;
-        const bool f = std::abs(128 - static_cast<int>(ly)) >= 96;
-        const bool moved = (s && !side) || (f && !fore);
-        side = s;
-        fore = f;
-        if (!cross || !in_air) on = false;
-        else if (moved) on = true;
-        return on;
+    // One frame. Returns whether the board's R1 is held; hide_cross() then says if Jak sees Cross.
+    bool step(bool cross, bool in_air, bool may_own) {
+        const bool press = cross && !prev;
+        prev = cross;
+        if (!cross) owned = false;
+        else if (press && in_air && may_own) owned = true;
+        return owned && in_air;
     }
+    // Cross is the trick's (kept from Jak even after the landing, until let go, so it does not jump).
+    bool hide_cross() const { return owned; }
 };
 
 } // namespace rac1
