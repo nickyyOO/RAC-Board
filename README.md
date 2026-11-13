@@ -66,7 +66,7 @@ The board takes these buttons only while Ratchet rides. On foot the game's contr
 - No weapons or gadgets on the board: Ratchet puts his away and takes the wrench as he gets on, and Circle and Triangle do nothing while he rides. Square keeps the game's job.
 - In a trick a faint ring under Ratchet points where the board's nose is (the light orange pointer), and a dot shows where he is going: land with the two together for the boost. Within 40 degrees counts, and the board eases straight as it lands.
 - The spin, grind and duck buttons can be changed in the mod's settings (Jak II's layout too).
-- **Spins and flips: Cross, held in the air** (as in Jak 3): jump, keep Cross held and push the stick to spin or flip. While Cross is held in the air the stick does tricks, not steering; let go of Cross to steer. A tap of Cross still kicks.
+- **Spins and flips: Cross, held in the air** (a setting): jump, keep Cross held and push the stick to spin or flip. While Cross is held in the air the stick does tricks, not steering; let go of Cross to steer. A tap of Cross still kicks.
 - **Board camera** (off by default) is Jak II's camera. The right stick swings it round.
 - On a keyboard, **B** gets on and off (you can rebind it).
 

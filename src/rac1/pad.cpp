@@ -25,7 +25,7 @@ PadState g_pad;
 bool g_was_held = false;
 bool g_cross_trick = false; // trick_button "x": a trick begun with Cross, held till Cross or the air ends
 
-// Setting trick_button "x" (as Jak 3): Cross held in the air does the tricks once the left stick
+// Setting trick_button "x": Cross held in the air does the tricks once the left stick
 // leaves the trick dead zones (64 sideways, 96 up or down, as target-board-spin-check reads it).
 // Cross alone still jumps and kicks as before, and on the ground Cross is only the jump.
 bool cross_trick(const jak::Target& t, uint16_t held) {
