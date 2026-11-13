@@ -35,6 +35,7 @@ struct Settings {
     PadButtons trick;
     PadButtons grind;
     PadButtons grab;
+    bool trick_on_cross = false; // trick_button "x": Cross held in the air with the stick does tricks
     bool trick_display = true; // trick names and points on screen
     bool board_camera = true;  // Jak II's board camera while riding
     bool heat_haze = true;     // the jet's heat haze behind the board

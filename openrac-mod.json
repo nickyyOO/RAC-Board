@@ -77,9 +77,13 @@
         {
           "value": "l1",
           "name": "L1"
+        },
+        {
+          "value": "x",
+          "name": "Cross, held in the air (as in Jak 3)"
         }
       ],
-      "description": "Hold it in the air with the stick left or right to spin, up or down to flip."
+      "description": "Hold it in the air with the stick left or right to spin, up or down to flip. With Cross, the stick starts the trick, so you can't steer while you hold Cross in the air, and the board does no turn-around spin on the ground."
     },
     {
       "key": "grind_button",

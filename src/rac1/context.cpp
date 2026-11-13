@@ -54,7 +54,9 @@ void load_settings(openrac::Mod& m) {
         if (comma == std::string::npos) break;
         start = comma + 1;
     }
-    s.trick = pad_buttons(m.setting<std::string>("trick_button"));
+    const std::string trick = m.setting<std::string>("trick_button");
+    s.trick_on_cross = trick == "x";
+    s.trick = s.trick_on_cross ? PadButtons{} : pad_buttons(trick);
     s.grind = pad_buttons(m.setting<std::string>("grind_button"));
     s.grab = pad_buttons(m.setting<std::string>("grab_button"));
     s.trick_display = m.setting<bool>("trick_display");

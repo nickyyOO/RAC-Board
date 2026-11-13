@@ -2,8 +2,10 @@
 // Copyright (c) 2026 Mateusz Kłysz
 #include "rac1/pad.hpp"
 
+#include <cstdlib>
 #include <cstring>
 
+#include "board/board.hpp"
 #include "jak/cpad.hpp"
 #include "rac1/context.hpp"
 #include "rac1/ride.hpp"
@@ -21,6 +23,23 @@ struct PadState {
 };
 PadState g_pad;
 bool g_was_held = false;
+bool g_cross_trick = false; // trick_button "x": a trick begun with Cross, held till Cross or the air ends
+
+// Setting trick_button "x" (as Jak 3): Cross held in the air does the tricks once the left stick
+// leaves the trick dead zones (64 sideways, 96 up or down, as target-board-spin-check reads it).
+// Cross alone still jumps and kicks as before, and on the ground Cross is only the jump.
+bool cross_trick(const jak::Target& t, uint16_t held) {
+    if (!(held & jak::pad::x) || jak::board_on_ground_p(t)) {
+        g_cross_trick = false;
+        return false;
+    }
+    if (!g_cross_trick) {
+        const int sx = 128 - static_cast<int>(g_pad.sticks[2]);
+        const int sy = 128 - static_cast<int>(g_pad.sticks[3]);
+        g_cross_trick = std::abs(sx) >= 64 || std::abs(sy) >= 96;
+    }
+    return g_cross_trick;
+}
 
 bool toggle_held(uint16_t held) {
     switch (settings().toggle) {
@@ -44,13 +63,14 @@ uint16_t toggle_bits() {
 
 // The pad as the board reads it: Cross jumps, the trick, grind and grab buttons are Jak II's R1,
 // Circle and L1. The rest (Circle, Square, Triangle) stay the game's.
-uint16_t jak_buttons(bool toggle) {
+uint16_t jak_buttons(const jak::Target& t, bool toggle) {
     const uint16_t held = g_pad.held & static_cast<uint16_t>(~toggle_bits());
     uint16_t b = held & jak::pad::x;
     const Settings& s = settings();
     const bool grind = s.grind.held(held);
     // R1 and Cross grind, not flip: a trick button inside the grind's buttons does no trick then.
-    const bool trick = s.trick.held(held) && !(grind && (s.grind.bits() & s.trick.bits()));
+    const bool trick = s.trick_on_cross ? cross_trick(t, held) && !(grind && (s.grind.bits() & jak::pad::x))
+                                        : s.trick.held(held) && !(grind && (s.grind.bits() & s.trick.bits()));
     if (trick) b |= jak::pad::r1;                // spins and flips
     if (grind) b |= jak::pad::circle;            // grind
     if (s.grab.held(held)) b |= jak::pad::l1;    // duck and grabs
@@ -111,7 +131,7 @@ bool toggle_pressed() {
 uint8_t pad_right_x() { return g_pad.valid ? g_pad.sticks[0] : 128; }
 
 void feed_pad(jak::Target& t, bool toggle) {
-    jak::cpad_set_hw(t.pad, jak_buttons(toggle), g_pad.sticks[0], g_pad.sticks[1], g_pad.sticks[2], g_pad.sticks[3]);
+    jak::cpad_set_hw(t.pad, jak_buttons(t, toggle), g_pad.sticks[0], g_pad.sticks[1], g_pad.sticks[2], g_pad.sticks[3]);
     std::memcpy(t.pad.abutton, g_pad.pressure, sizeof t.pad.abutton);
     jak::CpadService s;
     s.current_time = ctx().clock;
