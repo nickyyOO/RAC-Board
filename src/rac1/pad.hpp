@@ -15,6 +15,8 @@ void on_pad(int port, uint8_t* report, int size);
 bool toggle_pressed();
 // The right stick's x as port 0 last sent it (128 the middle), for the board's camera.
 uint8_t pad_right_x();
+// A new ride: a trick on Cross (setting trick_button "x") starts only from a fresh stick push.
+void reset_pad_tricks();
 // The pad into the target's cpad for one frame (read-pad's input), the board's button as R2.
 void feed_pad(jak::Target& t, bool toggle);
 

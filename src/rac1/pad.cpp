@@ -2,12 +2,12 @@
 // Copyright (c) 2026 Mateusz Kłysz
 #include "rac1/pad.hpp"
 
-#include <cstdlib>
 #include <cstring>
 
 #include "board/board.hpp"
 #include "jak/cpad.hpp"
 #include "rac1/context.hpp"
+#include "rac1/cross_trick.hpp"
 #include "rac1/ride.hpp"
 
 namespace rac1 {
@@ -23,23 +23,7 @@ struct PadState {
 };
 PadState g_pad;
 bool g_was_held = false;
-bool g_cross_trick = false; // trick_button "x": a trick begun with Cross, held till Cross or the air ends
-
-// Setting trick_button "x": Cross held in the air does the tricks once the left stick
-// leaves the trick dead zones (64 sideways, 96 up or down, as target-board-spin-check reads it).
-// Cross alone still jumps and kicks as before, and on the ground Cross is only the jump.
-bool cross_trick(const jak::Target& t, uint16_t held) {
-    if (!(held & jak::pad::x) || jak::board_on_ground_p(t)) {
-        g_cross_trick = false;
-        return false;
-    }
-    if (!g_cross_trick) {
-        const int sx = 128 - static_cast<int>(g_pad.sticks[2]);
-        const int sy = 128 - static_cast<int>(g_pad.sticks[3]);
-        g_cross_trick = std::abs(sx) >= 64 || std::abs(sy) >= 96;
-    }
-    return g_cross_trick;
-}
+CrossTrick g_cross; // setting trick_button "x"
 
 bool toggle_held(uint16_t held) {
     switch (settings().toggle) {
@@ -69,7 +53,7 @@ uint16_t jak_buttons(const jak::Target& t, bool toggle) {
     const Settings& s = settings();
     const bool grind = s.grind.held(held);
     // R1 and Cross grind, not flip: a trick button inside the grind's buttons does no trick then.
-    const bool trick = s.trick_on_cross ? cross_trick(t, held) && !(grind && (s.grind.bits() & jak::pad::x))
+    const bool trick = s.trick_on_cross ? g_cross.step((held & jak::pad::x) != 0, !jak::board_on_ground_p(t), g_pad.sticks[2], g_pad.sticks[3]) && !(grind && (s.grind.bits() & jak::pad::x))
                                         : s.trick.held(held) && !(grind && (s.grind.bits() & s.trick.bits()));
     if (trick) b |= jak::pad::r1;                // spins and flips
     if (grind) b |= jak::pad::circle;            // grind
@@ -129,6 +113,8 @@ bool toggle_pressed() {
 }
 
 uint8_t pad_right_x() { return g_pad.valid ? g_pad.sticks[0] : 128; }
+
+void reset_pad_tricks() { g_cross.reset(g_pad.sticks[2], g_pad.sticks[3]); }
 
 void feed_pad(jak::Target& t, bool toggle) {
     jak::cpad_set_hw(t.pad, jak_buttons(t, toggle), g_pad.sticks[0], g_pad.sticks[1], g_pad.sticks[2], g_pad.sticks[3]);

@@ -506,6 +506,7 @@ bool try_start_ride() {
     t->control.list_time_on_ground = g_ground_time;
     t->board->board_time = g_board_time;
     rt->board_setup = g_rode;
+    reset_pad_tricks();
     feed_pad(*t, true);
     const bool ok = jak::want_to_board_p(*t);
     rt->board_setup = false; // target-board-setup's own first time, as each ride makes a new target
