@@ -14,6 +14,7 @@
 
 #include "rac1/context.hpp"
 #include "rac1/convert.hpp"
+#include "rac1/fx/records.hpp"
 
 namespace rac1 {
 
@@ -216,6 +217,8 @@ void Effects::trick(jak::BoardTricks t, float points) {
         m_in_combo = true;
         m_count = 0;
         m_points = 0.0f;
+        m_record.clear();
+        m_new_record = false;
     }
     if (m_count < 16) {
         m_tricks[m_count++] = t;
@@ -228,6 +231,14 @@ void Effects::trick(jak::BoardTricks t, float points) {
 void Effects::combo_end() {
     m_in_combo = false;
     m_shown = kComboShown;
+    // The planet's best combo: a new one is kept and called out, else the best stays in view.
+    const int level = mod().play_status().level;
+    const int points = static_cast<int>(m_points);
+    m_new_record = points > 0 && records().offer(std::string(mod().game()), level, points);
+    const int best = records().best(std::string(mod().game()), level);
+    m_record = m_new_record ? std::string("New record!") : best > 0 ? "Best " + std::to_string(best) : std::string();
+    if (m_new_record) trace("new record " + std::to_string(points) + " on level " + std::to_string(level));
+    draw_combo();
 }
 
 // render-combo: each trick once, in the order done, " x N" when done more than once, then the points.
@@ -281,6 +292,11 @@ void Effects::draw_combo() {
     };
     add(m_line, 0.76f, 0.8f, 220, 220, 220);
     add(m_score, 0.83f, 1.25f, 255, 190, 40);
+    if (m_new_record) {
+        add(m_record, 0.89f, 0.9f, 120, 230, 255);
+    } else {
+        add(m_record, 0.89f, 0.7f, 170, 170, 170);
+    }
     m_drawn = mod().hud_text_set(lines);
 }
 

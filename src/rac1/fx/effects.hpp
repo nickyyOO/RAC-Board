@@ -71,6 +71,8 @@ class Effects : public jak::Effects {
     float m_shown = 0.0f; // seconds the line stays after the combo ends
     std::string m_line;   // the tricks, as render-combo writes them
     std::string m_score;  // and the points
+    std::string m_record; // the planet's best under them, once the combo is over
+    bool m_new_record = false;
     bool m_drawn = false; // whether the HUD has the lines now
 };
 

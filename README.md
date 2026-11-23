@@ -37,6 +37,7 @@ A mod that gives Ratchet Jak II's JET-Board.
 - **Its quirks too.** Hovers, extended flips and the other speedrun glitches work as in Jak II.
 - **Grind any rail.** Every grind rail in the game can be ridden, plus any edge Jak could grind.
 - **Tricks and combos.** Spins, flips, grabs, boosts, with Jak II's names and points on screen.
+- **Combo records.** Your best combo on each planet is saved. Beat it and the game tells you.
 - **Ratchet's own style.** He rides in clips made for him, with Clank on his back.
 - **Nothing from the discs.** The board model, sounds and effects are made by this repo's tools.
 

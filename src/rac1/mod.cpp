@@ -17,6 +17,7 @@
 #include "openrac/games/rac1.hpp"
 #include "rac1/context.hpp"
 #include "rac1/fx/effects.hpp"
+#include "rac1/fx/records.hpp"
 #include "rac1/camera.hpp"
 #include "rac1/interaction.hpp"
 #include "rac1/pad.hpp"
@@ -77,6 +78,7 @@ int load(openrac::Mod& m) {
     ctx().mod = &m;
     ctx().pal = m.version() == "pal";
     load_settings(m);
+    records().load(m.data_dir());
     if (m.has_world()) m.on_moby_hit(on_moby_hit);
     m.on_pad(on_pad);
     // The pause menu runs no hero update: the board's sounds held and brought back from here.
@@ -94,4 +96,4 @@ int load(openrac::Mod& m) {
 
 } // namespace
 
-OPENRAC_MOD_CPP("rac-board", "0.2.0", load)
+OPENRAC_MOD_CPP("rac-board", "0.3.0", load)
