@@ -19,6 +19,10 @@ namespace {
 openrac::gaddr table_address() { return mod().relocate_level(0, ctx().pal ? 0x0015F7ECu : 0x0015F70Cu); }
 openrac::gaddr count_address() { return mod().relocate_level(0, ctx().pal ? 0x0015F7F0u : 0x0015F710u); }
 
+// The top of game memory a pointer may reach: 32 MiB, or 256 MiB when the port mounts a large
+// custom level in expanded memory (its tables then lie past the console's 32 MiB).
+constexpr uint32_t kMemoryTop = 0x10000000u;
+
 struct Cache {
     uint32_t loads = ~0u;
     std::vector<Rail> rails;
@@ -30,11 +34,11 @@ void read_rails() {
     const openrac::Memory mem = mod().memory();
     const uint32_t table = mem.read<uint32_t>(table_address());
     const int32_t count = mem.read<int32_t>(count_address());
-    if (table == 0 || table >= 0x02000000u || count <= 0 || count > 512) return;
+    if (table == 0 || table >= kMemoryTop || count <= 0 || count > 512) return;
     for (int32_t i = 0; i < count; ++i) {
         const uint32_t entry = table + 0x20u * static_cast<uint32_t>(i);
         const uint32_t path = mem.read<uint32_t>(entry + 0x10);
-        if (path == 0 || path >= 0x02000000u) continue;
+        if (path == 0 || path >= kMemoryTop) continue;
         // A spline without a radius is one the hero never finds (nearest_rail_point skips it).
         if (!(mem.read<float>(entry + 12) > 0.0f)) continue;
         const int32_t n = mem.read<int32_t>(path);
