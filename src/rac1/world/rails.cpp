@@ -14,10 +14,21 @@ namespace rac1 {
 namespace {
 
 // The level's spline table (LevelSpline, 0x20 bytes each: bounds, path, kind) and its count, kept by
-// each level's program. Their addresses are Veldin's (NTSC-U D_L00_0015F70C and D_L00_0015F710),
-// each moved to where the level loaded now keeps it (a level may not keep the two side by side).
-openrac::gaddr table_address() { return mod().relocate_level(0, ctx().pal ? 0x0015F7ECu : 0x0015F70Cu); }
-openrac::gaddr count_address() { return mod().relocate_level(0, ctx().pal ? 0x0015F7F0u : 0x0015F710u); }
+// each level's program. Their addresses are level 0's (Ratchet & Clank NTSC-U D_L00_0015F70C and
+// D_L00_0015F710; Going Commando D_L00_001B16C0 and D_L00_001B16C4, USA v2.00 0x80 lower), each
+// moved to where the level loaded now keeps it (a level may not keep the two side by side).
+openrac::gaddr table_address() {
+    if (ctx().rac2) return mod().relocate_level(0, ctx().v200 ? 0x001B1640u : 0x001B16C0u);
+    return mod().relocate_level(0, ctx().pal ? 0x0015F7ECu : 0x0015F70Cu);
+}
+openrac::gaddr count_address() {
+    if (ctx().rac2) return mod().relocate_level(0, ctx().v200 ? 0x001B1644u : 0x001B16C4u);
+    return mod().relocate_level(0, ctx().pal ? 0x0015F7F0u : 0x0015F710u);
+}
+
+// The top of game memory a pointer may reach: 32 MiB, or 256 MiB when the port mounts a large
+// custom level in expanded memory (its tables then lie past the console's 32 MiB).
+constexpr uint32_t kMemoryTop = 0x10000000u;
 
 struct Cache {
     uint32_t loads = ~0u;
@@ -30,11 +41,11 @@ void read_rails() {
     const openrac::Memory mem = mod().memory();
     const uint32_t table = mem.read<uint32_t>(table_address());
     const int32_t count = mem.read<int32_t>(count_address());
-    if (table == 0 || table >= 0x02000000u || count <= 0 || count > 512) return;
+    if (table == 0 || table >= kMemoryTop || count <= 0 || count > 512) return;
     for (int32_t i = 0; i < count; ++i) {
         const uint32_t entry = table + 0x20u * static_cast<uint32_t>(i);
         const uint32_t path = mem.read<uint32_t>(entry + 0x10);
-        if (path == 0 || path >= 0x02000000u) continue;
+        if (path == 0 || path >= kMemoryTop) continue;
         // A spline without a radius is one the hero never finds (nearest_rail_point skips it).
         if (!(mem.read<float>(entry + 12) > 0.0f)) continue;
         const int32_t n = mem.read<int32_t>(path);

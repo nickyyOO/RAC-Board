@@ -96,6 +96,8 @@ class Interaction {
     virtual void notify_trick_point(BoardTricks) {}
     virtual void notify_trick_flush(float, const BoardTricks*, int) {}
     virtual void get_pickup_trick_point(float) {}
+    // RAC-Board's own: while true, flush-trick-list keeps the list (a manual carries the combo on).
+    virtual bool hold_combo() { return false; }
     // set-setting! / remove-setting! (settings.gc), by name; the values are the board's numbers.
     virtual void set_setting(const char*, Symbol, float) {}
     virtual void remove_setting(const char*) {}

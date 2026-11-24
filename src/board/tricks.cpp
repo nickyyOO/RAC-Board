@@ -111,6 +111,7 @@ void add_to_trick_list(Target& self, BoardTricks arg0, float arg1) {
 void flush_trick_list(Target& self) {
     BoardRuntime& rt = runtime(self);
     BoardInfo& b = *self.board;
+    if (rt.io->hold_combo()) return; // RAC-Board: a manual keeps the combo going
     float f30 = 0.0f;
     for (int i = 0; i < b.trick_count; i++) {
         f30 = f30 + trick_points_raw(b, i);
@@ -122,6 +123,15 @@ void flush_trick_list(Target& self) {
         end_combo(self); // PC port
     }
     b.trick_count = 0;
+}
+
+// RAC-Board's own: the list dropped without its points (a manual's bail).
+void drop_trick_list(Target& self) {
+    self.board->trick_count = 0;
+    runtime(self).trick_tracker.combo_in_progress = false;
+    if (self.effects) {
+        self.effects->combo_bail();
+    }
 }
 
 // ---- want-to-board? (board-h.gc): R2 pressed (or latched) and room to get on ----

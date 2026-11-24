@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Mateusz Kłysz
 //
-// RAC-Board in Ratchet & Clank: the mod's entry. While Ratchet rides, the mod takes his update
-// (rac1.player.update) and runs one frame of Jak II's target on the board (src/jak and src/board,
-// ported from OpenGOAL) in his place. Off the board the game's own update runs, untouched.
+// RAC-Board in Ratchet & Clank and Going Commando: the mod's entry. While Ratchet rides, the mod
+// takes his update (rac1.player.update, rac2.player.update) and runs one frame of Jak II's target
+// on the board (src/jak and src/board, ported from OpenGOAL) in his place. Off the board the game's own update runs, untouched.
 //
 // The adapter's parts (src/rac1):
 //   context.*      settings, the board's clock, the mod's API
@@ -17,16 +17,18 @@
 #include "openrac/games/rac1.hpp"
 #include "rac1/context.hpp"
 #include "rac1/fx/effects.hpp"
+#include "rac1/fx/records.hpp"
 #include "rac1/camera.hpp"
 #include "rac1/interaction.hpp"
 #include "rac1/pad.hpp"
+#include "rac1/rac2_hooks.hpp"
 #include "rac1/ride.hpp"
 
 namespace {
 
 using namespace rac1;
 
-// rac1.player.update: the board's frame while riding, the game's otherwise.
+// The hero's update: the board's frame while riding, the game's otherwise.
 void hero_update(const openrac::Original<void()>& original) {
     // Under the pause menu (the port runs the level on under it) the board stands still, as the
     // game's world does.
@@ -66,8 +68,10 @@ void hero_update(const openrac::Original<void()>& original) {
 }
 
 int load(openrac::Mod& m) {
-    if (m.game() != "rac1" || (m.version() != "pal" && m.version() != "ntsc")) {
-        m.fail("RAC-Board knows Ratchet & Clank's PAL and NTSC-U discs only");
+    const bool rac1 = m.game() == "rac1" && (m.version() == "pal" || m.version() == "ntsc");
+    const bool rac2 = m.game() == "rac2" && (m.version() == "pal" || m.version() == "ntsc" || m.version() == "ntsc2");
+    if (!rac1 && !rac2) {
+        m.fail("RAC-Board knows Ratchet & Clank's PAL and NTSC-U discs and Going Commando's PAL, USA v1.01 and USA v2.00 discs only");
         return 1;
     }
     if (!m.has_api_12()) {
@@ -75,8 +79,11 @@ int load(openrac::Mod& m) {
         return 1;
     }
     ctx().mod = &m;
+    ctx().rac2 = rac2;
     ctx().pal = m.version() == "pal";
+    ctx().v200 = rac2 && m.version() == "ntsc2";
     load_settings(m);
+    records().load(m.data_dir());
     if (m.has_world()) m.on_moby_hit(on_moby_hit);
     m.on_pad(on_pad);
     // The pause menu runs no hero update: the board's sounds held and brought back from here.
@@ -87,11 +94,15 @@ int load(openrac::Mod& m) {
             effects().resume_sounds();
         }
     });
-    m.hook<openrac::rac1::Hero_Update>([](const auto& original) { hero_update(original); });
+    if (rac2) {
+        m.hook<rac1::rac2::Hero_Update>([](const auto& original) { hero_update(original); });
+    } else {
+        m.hook<openrac::rac1::Hero_Update>([](const auto& original) { hero_update(original); });
+    }
     m.info("RAC-Board ready");
     return 0;
 }
 
 } // namespace
 
-OPENRAC_MOD_CPP("rac-board", "0.2.0", load)
+OPENRAC_MOD_CPP("rac-board", "0.3.0", load)

@@ -21,6 +21,7 @@
 #include "rac1/convert.hpp"
 #include "rac1/fx/effects.hpp"
 #include "rac1/interaction.hpp"
+#include "rac1/manual.hpp"
 #include "rac1/pad.hpp"
 #include "rac1/camera.hpp"
 #include "rac1/world/ground.hpp"
@@ -244,6 +245,61 @@ bool grounded(jak::StateId st) {
            st == StateId::target_board_get_on || st == StateId::target_board_get_off;
 }
 
+// Going Commando poses what he wears on his head (the helmets) from his neck (joint 7), not his
+// head (8): the head's turn goes onto the neck, so the head and the helmet turn together.
+void fold_head_into_neck(std::vector<openrac_joint_offset>& offsets) {
+    static constexpr uint32_t kNeck = 7, kHead = 8; // static, so MSVC lambdas can use them
+    const auto head = std::find_if(offsets.begin(), offsets.end(), [](const auto& o) { return o.joint == kHead; });
+    if (head == offsets.end()) return;
+    const openrac_joint_offset h = *head;
+    offsets.erase(head);
+    auto neck = std::find_if(offsets.begin(), offsets.end(), [](const auto& o) { return o.joint == kNeck; });
+    if (neck == offsets.end()) {
+        openrac_joint_offset n{};
+        n.joint = kNeck;
+        n.rotation[3] = 1.0f;
+        offsets.push_back(n);
+        neck = offsets.end() - 1;
+    }
+    const float* a = neck->rotation;
+    const float* b = h.rotation;
+    const float q[4] = {a[3] * b[0] + b[3] * a[0] + (a[1] * b[2] - a[2] * b[1]),
+                        a[3] * b[1] + b[3] * a[1] + (a[2] * b[0] - a[0] * b[2]),
+                        a[3] * b[2] + b[3] * a[2] + (a[0] * b[1] - a[1] * b[0]),
+                        a[3] * b[3] - (a[0] * b[0] + a[1] * b[1] + a[2] * b[2])};
+    std::copy(q, q + 4, neck->rotation);
+}
+
+// A manual: he and the board lean back together (joint 0 and show_board turn about his feet); he is
+// lifted and moved back so that the board's tail stays where it was, on the ground.
+void lean_on_tail(openrac_pose& pose, float yaw) {
+    const float a = manual().tilt();
+    if (a == 0.0f) return;
+    constexpr float kHalfBoard = 0.55f; // half the board's length (tools/make_board.py)
+    const float rise = kHalfBoard * std::sin(a), back = kHalfBoard * (1.0f - std::cos(a));
+    pose.position[0] -= back * std::cos(yaw);
+    pose.position[1] -= back * std::sin(yaw);
+    pose.position[2] += rise;
+}
+
+// The manual's lean as his root's turn: about his left (y) through his feet, after the spin.
+void lean_root(std::vector<openrac_joint_offset>& offsets) {
+    const float a = manual().tilt();
+    if (a == 0.0f) return;
+    auto root = std::find_if(offsets.begin(), offsets.end(), [](const auto& o) { return o.joint == 0; });
+    if (root == offsets.end()) {
+        openrac_joint_offset r{};
+        r.rotation[3] = 1.0f;
+        offsets.push_back(r);
+        root = offsets.end() - 1;
+    }
+    const float* q = root->rotation;
+    const float s = std::sin(0.5f * a), c = std::cos(0.5f * a);
+    // q times (0, s, 0, c)
+    const float out[4] = {q[0] * c - q[2] * s, q[1] * c + q[3] * s, q[2] * c + q[0] * s, q[3] * c - q[1] * s};
+    std::copy(out, out + 4, root->rotation);
+}
+
 // Ratchet's body: his place and heading, held in his standing pose, the riding pose over it.
 void show_ratchet(openrac_pose& pose, float yaw, bool last) {
     const jak::Target& t = *g_ride.t;
@@ -251,6 +307,7 @@ void show_ratchet(openrac_pose& pose, float yaw, bool last) {
     pose.rotation[0] = 0.0f;
     pose.rotation[1] = 0.0f;
     pose.rotation[2] = yaw;
+    lean_on_tail(pose, yaw);
     to_game_dir(t.control.transv, pose.velocity);
     for (float& v : pose.velocity) v /= kUnit;
     // Held in his standing pose under the riding one; on the last frame, back to the animation of
@@ -261,17 +318,6 @@ void show_ratchet(openrac_pose& pose, float yaw, bool last) {
     // For the game's camera: on the ground or in the air, as the board is.
     pose.flags = (t.control.status & jak::cstat::on_surface) || grounded(g_ride.rt->state) ? OPENRAC_POSE_ON_GROUND
                                                                                          : OPENRAC_POSE_IN_AIR;
-    mod().hero_set_pose(pose);
-    // On the ground the game makes a jump, flip or fall he got on in idle (its camera has a mode
-    // for each): the state the ride now hands back, standing.
-    openrac_pose now{};
-    if (mod().hero_pose(now) && now.state != interaction().hero_state) {
-        interaction().hero_state = now.state;
-        if (now.state == 0) {
-            g_ride.start_seq = 0;
-            g_ride.start_speed = 1.0f;
-        }
-    }
     std::copy(pose.position, pose.position + 3, g_ride.shown);
     g_ride.has_shown = true;
 
@@ -335,9 +381,24 @@ void show_ratchet(openrac_pose& pose, float yaw, bool last) {
         std::memcpy(offsets[i].rotation, js[i].q, sizeof js[i].q);
         std::memcpy(offsets[i].translation, js[i].t, sizeof js[i].t);
     }
+    if (ctx().rac2) fold_head_into_neck(offsets);
+    lean_root(offsets);
     g_last_offsets = offsets;
     g_ride.pose_in = std::min(1.0f, g_ride.pose_in + dt / kPoseIn);
+    // The joints first: what he wears on his head (Going Commando's helmets) is posed from them as
+    // hero_set_pose shows him, so the other way round it trailed his head by a frame.
     mod().hero_set_joints(g_ride.pose_in < 1.0f ? scaled(offsets, g_ride.pose_in) : offsets);
+    mod().hero_set_pose(pose);
+    // On the ground the game makes a jump, flip or fall he got on in idle (its camera has a mode
+    // for each): the state the ride now hands back, standing.
+    openrac_pose now{};
+    if (mod().hero_pose(now) && now.state != interaction().hero_state) {
+        interaction().hero_state = now.state;
+        if (now.state == 0) {
+            g_ride.start_seq = 0;
+            g_ride.start_speed = 1.0f;
+        }
+    }
 }
 
 // The board: where the clip has it (its turn and place in his model space: x his heading, y his
@@ -365,15 +426,26 @@ void show_board(const openrac_pose& pose, float yaw) {
         qrot(sq, v, a);
         for (int c = 0; c < 3; ++c) out[c] = a[0] * f[c] + a[1] * l[c] + a[2] * u[c];
     };
+    // A manual: the nose up, turned about his left (y) through his feet as he is (lean_root).
+    const float tc = std::cos(manual().tilt()), ts = std::sin(manual().tilt());
+    const auto lean = [&](float v[3]) {
+        const float x = v[0], z = v[2];
+        v[0] = x * tc - z * ts;
+        v[2] = x * ts + z * tc;
+    };
     const float nose_m[3] = {1.0f, 0.0f, 0.0f}, left_m[3] = {0.0f, 1.0f, 0.0f}, up_m[3] = {0.0f, 0.0f, 1.0f};
     float nose[3], left[3], up[3], o[3];
     qrot(bq, nose_m, o);
+    lean(o);
     to_game(o, nose);
     qrot(bq, left_m, o);
+    lean(o);
     to_game(o, left);
     qrot(bq, up_m, o);
+    lean(o);
     to_game(o, up);
-    const float place[3] = {bt[kPx] * scale, bt[kPy] * scale, bt[kPz] * scale};
+    float place[3] = {bt[kPx] * scale, bt[kPy] * scale, bt[kPz] * scale};
+    lean(place);
     to_game(place, o);
     const float mat[16] = {size * left[0], size * left[1], size * left[2], 0.0f,
                            size * up[0],   size * up[1],   size * up[2],   0.0f,
@@ -381,11 +453,19 @@ void show_board(const openrac_pose& pose, float yaw) {
                            p[0] + o[0],    p[1] + o[1],    p[2] + o[2],    1.0f};
     if (g_board_prop < 0 || !mod().prop_pose(g_board_prop, mat)) {
         // None yet, or gone with its level: a new one.
-        g_board_prop = mod().prop_create("assets/board.glb");
+        g_board_prop = mod().prop_create(board_mesh());
         trace("board prop " + std::to_string(g_board_prop));
         if (g_board_prop >= 0) mod().prop_pose(g_board_prop, mat);
     }
     if (g_board_prop >= 0) mod().prop_hide(g_board_prop, false);
+    // A manual: sparks where the tail scrapes the ground.
+    if (manual().active()) {
+        constexpr float kTail = 0.5f; // from the board's middle to its tail (tools/make_board.py)
+        float tail[3];
+        for (int c = 0; c < 3; ++c) tail[c] = p[c] + o[c] - kTail * size * nose[c];
+        tail[2] -= 0.12f; // its underside
+        effects().manual_sparks(tail, yaw);
+    }
     const float nl = std::sqrt(nose[0] * nose[0] + nose[1] * nose[1]);
     if (nl > 0.2f) g_board_nose[0] = nose[0] / nl, g_board_nose[1] = nose[1] / nl;
 }
@@ -469,11 +549,11 @@ namespace {
 // plays it on after the ride as a new swing. True when one ended.
 bool end_attack() {
     const openrac::Memory mem = mod().memory();
-    if (mem.read<int32_t>(hero_field(0x208Cu)) != 6) return false;
-    trace("attack in hero state " + std::to_string(mem.read<int32_t>(hero_field(0x2084u))) + " ended");
-    mem.write<int32_t>(hero_field(0x2084u), 0);
-    mem.write<int32_t>(hero_field(0x2088u), 0);
-    mem.write<int32_t>(hero_field(0x208Cu), 0);
+    if (mem.read<int32_t>(hero_states(8)) != 6) return false;
+    trace("attack in hero state " + std::to_string(mem.read<int32_t>(hero_states(0))) + " ended");
+    mem.write<int32_t>(hero_states(0), 0);
+    mem.write<int32_t>(hero_states(4), 0);
+    mem.write<int32_t>(hero_states(8), 0);
     return true;
 }
 
@@ -593,13 +673,17 @@ RideStep tick_ride(bool toggle) {
     t.camera_local_to_world = camera_matrix(hero, jak_forward_to_yaw(fwd));
     feed_pad(t, toggle);
 
-    // A hit the board takes (its hit state) costs him a hit point, as one on foot does.
-    if (deliver_hit(t) && g_ride.rt->pending && g_ride.rt->pending_state == jak::StateId::target_board_hit) {
-        mod().hero_hurt(1);
+    // A hit the board takes: its hit state takes the damage off his health (pickup_health).
+    poll_hits();
+    deliver_hit(t);
+    if (mod().has_world()) {
+        touch_creatures(t);
+        break_crates(t);
     }
-    if (mod().has_world()) touch_creatures(t);
     carry(t);
     jak::board_tick(t);
+    manual().update(t, grab_held(), balance_stick(), frame_seconds());
+    effects().manual_meter(manual().active(), manual().balance());
     float feet[3];
     to_game_point(t.control.trans, feet);
     const Ground ground = ground_under(feet);
@@ -673,6 +757,8 @@ void end_ride() {
     if (g_board_prop >= 0) mod().prop_hide(g_board_prop, true);
     hide_guide();
     // A combo still running ends with the ride: its line fades as after a landing.
+    manual().finish(*g_ride.t);
+    effects().manual_meter(false, 0.0f);
     effects().ride_over();
     interaction().target = nullptr;
     interaction().left = false;

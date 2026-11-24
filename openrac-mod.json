@@ -2,7 +2,7 @@
   "format": 2,
   "id": "rac-board",
   "name": "RAC-Board",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "author": "Mateusz Kłysz",
   "description": "Jak II's JET-Board for Ratchet. Summon the board and ride it with Jak II's own physics and states: ollies, duck jumps, spins, flips, grabs, wall kicks, and their quirks. Grind every rail in the game (hold R1 or R2 with Cross). Ratchet keeps Clank on his back. Our own board model and sounds, nothing from either game's disc.",
   "license": "MIT",
@@ -12,10 +12,16 @@
     "rac1": [
       "pal",
       "ntsc"
+    ],
+    "rac2": [
+      "pal",
+      "ntsc",
+      "ntsc2"
     ]
   },
   "hooks": [
-    "rac1.player.update"
+    "rac1.player.update",
+    "rac2.player.update"
   ],
   "assets": "assets",
   "settings": [
@@ -148,7 +154,7 @@
       "name": "Trick names and points",
       "type": "bool",
       "default": true,
-      "description": "Shows each combo's tricks and points in the game's HUD, in its own font, low in the middle of the screen."
+      "description": "Shows each combo's tricks and points in the game's HUD, low in the middle of the screen, and the planet's best combo when it ends."
     },
     {
       "key": "board_camera",

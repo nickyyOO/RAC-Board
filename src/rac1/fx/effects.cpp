@@ -14,6 +14,7 @@
 
 #include "rac1/context.hpp"
 #include "rac1/convert.hpp"
+#include "rac1/fx/records.hpp"
 
 namespace rac1 {
 
@@ -22,7 +23,8 @@ namespace {
 // The names in board-tricks order (text ids trick-board-none and on).
 constexpr const char* kTrickNames[] = {"",          "Spin",       "Boost",      "Flip",     "Rail Grind",
                                        "Rail Jump", "Nosegrab",   "Method",     "Board Spin", "Board Flip",
-                                       "Noseflip",  "Kickflip",   "Jump",       "Duck Jump",  "Quick Jump"};
+                                       "Noseflip",  "Kickflip",   "Jump",       "Duck Jump",  "Quick Jump",
+                                       "",          "",           "",           "",         "Manual"};
 constexpr int kTrickNameCount = sizeof(kTrickNames) / sizeof(kTrickNames[0]);
 
 // How long the last combo stays on screen once it is over.
@@ -49,21 +51,23 @@ int Effects::sound(const char* name) {
     return s;
 }
 
-// The mod's own sounds (assets/sounds) and every mesh a prop of the mod's draws.
+// The mod's own sounds (assets/sounds) and the effects' meshes.
 constexpr const char* kSoundFiles[] = {"board-bank",  "board-boost",     "board-boots",  "board-bounce",
                                        "board-glance", "board-spin-loop", "board-steady", "board-turn",
                                        "board-wind",   "get-burned",      "swim-enter"};
-constexpr const char* kPropMeshes[] = {"assets/board.glb",    "assets/fx/compass.glb", "assets/fx/glow.glb",
-                                       "assets/fx/streak.glb", "assets/fx/ring.glb",    "assets/fx/puff.glb",
-                                       "assets/fx/burst.glb"};
+constexpr const char* kFxMeshes[] = {"assets/fx/compass.glb", "assets/fx/glow.glb", "assets/fx/streak.glb",
+                                     "assets/fx/ring.glb",    "assets/fx/puff.glb", "assets/fx/burst.glb"};
 
 void Effects::warm() {
     if (m_warm) return;
     // A prop is made only in a level: all of them in one frame, so the port reads the level again
     // once, here, and keeps the meshes for every level after.
-    int ids[std::size(kPropMeshes)];
-    for (std::size_t i = 0; i < std::size(kPropMeshes); ++i) {
-        ids[i] = mod().prop_create(kPropMeshes[i]);
+    // The board's model first, then the effects'.
+    const char* meshes[1 + std::size(kFxMeshes)] = {board_mesh()};
+    std::copy(std::begin(kFxMeshes), std::end(kFxMeshes), meshes + 1);
+    int ids[std::size(meshes)];
+    for (std::size_t i = 0; i < std::size(meshes); ++i) {
+        ids[i] = mod().prop_create(meshes[i]);
         if (ids[i] < 0) {
             for (std::size_t j = 0; j < i; ++j) mod().prop_remove(ids[j]);
             return; // not in a level yet (or no props free): the next frame tries again
@@ -214,8 +218,11 @@ void Effects::clear_particles() { m_fx.clear(mod()); }
 void Effects::trick(jak::BoardTricks t, float points) {
     if (!m_in_combo) {
         m_in_combo = true;
+        m_bailed = false;
         m_count = 0;
         m_points = 0.0f;
+        m_record.clear();
+        m_new_record = false;
     }
     if (m_count < 16) {
         m_tricks[m_count++] = t;
@@ -228,6 +235,31 @@ void Effects::trick(jak::BoardTricks t, float points) {
 void Effects::combo_end() {
     m_in_combo = false;
     m_shown = kComboShown;
+    // The planet's best combo: a new one is kept and called out, else the best stays in view.
+    const int level = mod().play_status().level;
+    const int points = static_cast<int>(m_points);
+    m_new_record = points > 0 && records().offer(std::string(mod().game()), level, points);
+    const int best = records().best(std::string(mod().game()), level);
+    m_record = m_new_record ? std::string("New record!") : best > 0 ? "Best " + std::to_string(best) : std::string();
+    if (m_new_record) trace("new record " + std::to_string(points) + " on level " + std::to_string(level));
+    draw_combo();
+}
+
+// The manual's bail: the combo is lost, its line says so and no points are kept.
+void Effects::combo_bail() {
+    if (!m_in_combo) m_line = "Manual"; // a manual straight after a flushed landing
+    m_in_combo = false;
+    m_shown = kComboShown;
+    m_score.clear();
+    m_record = "Bail!";
+    m_new_record = false;
+    m_bailed = true;
+    draw_combo();
+}
+
+void Effects::manual_meter(bool on, float balance) {
+    m_meter = on;
+    m_balance = balance;
 }
 
 // render-combo: each trick once, in the order done, " x N" when done more than once, then the points.
@@ -259,7 +291,8 @@ void Effects::show_combo() {
 // The combo in the game's HUD, in its own font, low in the middle of the screen as Jak II has it:
 // the tricks, the points under them, fading out at the end of the time the line stays.
 void Effects::draw_combo() {
-    const bool shown = settings().trick_display && (m_in_combo || m_shown > 0.0f) && !m_line.empty();
+    const bool meter = settings().trick_display && m_meter;
+    const bool shown = meter || (settings().trick_display && (m_in_combo || m_shown > 0.0f) && !m_line.empty());
     if (!shown) {
         if (m_drawn) mod().hud_text_set({});
         m_drawn = false;
@@ -279,8 +312,36 @@ void Effects::draw_combo() {
         l.flags = OPENRAC_HUD_SHADOW;
         lines.push_back(l);
     };
-    add(m_line, 0.76f, 0.8f, 220, 220, 220);
-    add(m_score, 0.83f, 1.25f, 255, 190, 40);
+    if (meter) {
+        // The manual's balance: the mark slides to the edge he falls off at, green to red.
+        constexpr int kSlots = 13;
+        const float b = std::clamp(m_balance, -1.0f, 1.0f);
+        const int at = static_cast<int>(std::lround((b + 1.0f) * 0.5f * (kSlots - 1)));
+        std::string bar = "[";
+        for (int i = 0; i < kSlots; ++i) bar += i == at ? 'O' : (i == kSlots / 2 ? '|' : '-');
+        bar += "]";
+        const float d = std::fabs(b);
+        const auto lerp = [](float a, float c, float k) { return static_cast<uint8_t>(a + (c - a) * k + 0.5f); };
+        openrac_hud_text l{};
+        std::snprintf(l.text, sizeof l.text, "%s", bar.c_str());
+        l.x = 0.5f;
+        l.y = 0.70f;
+        l.scale = 0.9f;
+        l.rgba[0] = lerp(120, 255, d), l.rgba[1] = lerp(230, 70, d), l.rgba[2] = lerp(120, 50, d), l.rgba[3] = 255;
+        l.flags = OPENRAC_HUD_SHADOW;
+        lines.push_back(l);
+    }
+    if (m_in_combo || m_shown > 0.0f) {
+        add(m_line, 0.76f, 0.8f, 220, 220, 220);
+        add(m_score, 0.83f, 1.25f, 255, 190, 40);
+        if (m_bailed) {
+            add(m_record, 0.89f, 1.0f, 255, 80, 60);
+        } else if (m_new_record) {
+            add(m_record, 0.89f, 0.9f, 120, 230, 255);
+        } else {
+            add(m_record, 0.89f, 0.7f, 170, 170, 170);
+        }
+    }
     m_drawn = mod().hud_text_set(lines);
 }
 
@@ -288,7 +349,7 @@ void Effects::update() {
     m_fx.haze = settings().heat_haze && mod().has_camera();
     m_fx.update(mod(), frame_seconds());
     if (m_shown > 0.0f) m_shown = std::max(0.0f, m_shown - frame_seconds());
-    if (m_drawn || m_in_combo || m_shown > 0.0f) draw_combo();
+    if (m_drawn || m_in_combo || m_shown > 0.0f || m_meter) draw_combo();
 }
 
 } // namespace rac1

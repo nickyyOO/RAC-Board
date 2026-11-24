@@ -44,6 +44,8 @@ class Effects {
     // A trick added to the combo, and the combo's end (board-trick-tracker, the PC port's display).
     virtual void trick(BoardTricks trick, float points) = 0;
     virtual void combo_end() = 0;
+    // The combo lost (a manual's bail): no points. RAC-Board's own.
+    virtual void combo_bail() { combo_end(); }
 };
 
 } // namespace jak

@@ -142,6 +142,31 @@ void BoardFx::launch(const char* group, const float at[3], float yaw, float rate
             s.life = rand(0.167f, 0.497f);
             spawn(s);
         }
+    } else if (!std::strcmp(group, "rac-board-manual-sparks")) {
+        // RAC-Board's own: a few sparks where the manual's tail scrapes the ground, yellow going
+        // orange, thrown back and up, short.
+        m_carry += rate;
+        while (m_carry >= 1.0f) {
+            m_carry -= 1.0f;
+            Particle s;
+            s.sprite = streak;
+            s.along = true;
+            colour(s, 255.0f, 165.0f, 55.0f, rand(80.0f, 48.0f));
+            float d[3];
+            cone(d, rand(55.0f, 30.0f), yaw / kDeg + 180.0f + rand(-35.0f, 70.0f));
+            const float v = m(rand(0.025f, 0.02f));
+            place(s, 0.0f);
+            for (int k = 0; k < 3; ++k) s.vel[k] = d[k] * v;
+            s.sx = m(1.8f);
+            s.sy = m(0.05f);
+            s.fade[1] = -rand(1.0f, 1.5f) / 128.0f;
+            s.fade[2] = -4.0f / 128.0f;
+            s.fade[3] = -rand(0.3f, 0.2f) / 128.0f;
+            s.accel = -m(rand(0.0016666667f, 0.00066666666f));
+            s.friction = 0.93f;
+            s.life = rand(0.15f, 0.25f);
+            spawn(s);
+        }
     } else if (!std::strcmp(group, "group-land-poof-stn")) {
         // 112 and 113: a ring of dust where he lands hard.
         for (int big = 1; big >= 0; --big) {

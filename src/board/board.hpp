@@ -48,6 +48,7 @@ bool want_to_board_p(Target& self);
 // board-info methods.
 void add_to_trick_list(Target& self, BoardTricks trick, float points);
 void flush_trick_list(Target& self);
+void drop_trick_list(Target& self); // RAC-Board's own
 // The PC port's trick tracker (board-trick-tracker methods).
 void reset_combo(Target& self);
 void add_trick_to_combo(Target& self, BoardTricks trick, float points);

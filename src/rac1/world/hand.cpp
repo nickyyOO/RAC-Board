@@ -13,19 +13,18 @@ namespace {
 
 std::vector<int> g_hand; // the pieces' moby slots
 
-constexpr int32_t kWrench = 8; // the wrench's item id (ITEM_WRENCH)
 bool g_asked = false;          // the wrench request below is the mod's
 int32_t g_held_request = 0;    // an item asked for while he rode, given back when he gets off
 
 // force_slot0_item8: the game's own request to put the item in his hand away for the wrench. It
 // clears it once done.
-openrac::gaddr wrench_request() { return hero_field(0x20A6u); }
+openrac::gaddr wrench_request() { return hero_states(0x22u); }
 // The item asked for in his hand (the first of his item slots' requests, 0 for none): set by the
 // pause menu and by pickups, carried out by the game's item code.
-openrac::gaddr hand_request() { return hero_field(0x20B8u); }
+openrac::gaddr hand_request() { return hero_states(0x34u); }
 
 // The item in his hand is the wrench.
-bool is_wrench(int32_t item) { return item == kWrench; }
+bool is_wrench(int32_t item) { return item == wrench_item(); }
 
 // Nothing in his hand to put away: the wrench, or no item.
 bool hand_free(int32_t item) { return item < 0 || is_wrench(item); }

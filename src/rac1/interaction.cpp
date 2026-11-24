@@ -14,6 +14,9 @@
 #include "rac1/context.hpp"
 #include "rac1/convert.hpp"
 #include "rac1/fx/effects.hpp"
+#include "rac1/manual.hpp"
+#include "rac1/pad.hpp"
+#include "rac1/rac2_hooks.hpp"
 
 namespace rac1 {
 
@@ -49,8 +52,16 @@ struct PendingHit {
 };
 PendingHit g_hit;
 
-// When each creature was last touched (by slot), so each touch counts once a half second.
+// When each creature or crate was last touched (by slot), so each touch counts once a half second.
 std::map<int, jak::TimeFrame> g_touched;
+
+// True (and the touch noted) when the slot was not touched in the last half second.
+bool touch_due(int slot) {
+    const auto it = g_touched.find(slot);
+    if (it != g_touched.end() && ctx().clock - it->second < jak::seconds(0.5)) return false;
+    g_touched[slot] = ctx().clock;
+    return true;
+}
 
 } // namespace
 
@@ -67,11 +78,17 @@ float Interaction::health() {
 
 void Interaction::pickup_health(float amount) {
     if (amount >= 0.0f) return;
-    static const auto take =
-        mod().function<openrac::rac1::Hero_TakeDamage::fn>(openrac::rac1::Hero_TakeDamage::name);
-    // Hero_TakeDamage takes one hit point a call; the instant deaths take them all.
-    const int n = static_cast<int>(std::min(-amount, 100.0f) + 0.5f);
-    for (int i = 0; i < std::max(n, 1) && take; ++i) take(1);
+    // The instant deaths ask for 1000: all of his health.
+    const int n = std::max(static_cast<int>(std::min(-amount, 100.0f) + 0.5f), 1);
+    if (ctx().rac2) {
+        // Going Commando's Hero_TakeDamage takes the whole hit at once.
+        static const auto take =
+            mod().function<rac2::Hero_TakeDamage::fn>(rac2::Hero_TakeDamage::name);
+        if (take) take(n);
+    } else {
+        // Ratchet & Clank's takes at most one hit point a call.
+        for (int i = 0; i < n; ++i) mod().hero_hurt(1);
+    }
 }
 
 jak::TimeFrame Interaction::game_clock_frame_counter() { return ctx().clock; }
@@ -154,9 +171,14 @@ int on_moby_hit(void*, const openrac_hit* hit) {
     trace("hit " + std::to_string(hit->victim) + " by " + std::to_string(hit->attacker) + " mask " +
           std::to_string(hit->mask) + " damage " + std::to_string(hit->damage));
     if (interaction().target == nullptr || hit->victim < 0 || hit->victim != mod().figure_slot(-1)) return 0;
+    // Still invulnerable from the last hit or the mount: the hit is dropped, as the game's own hurt
+    // time drops hits on foot (an explosion hits him on several frames).
+    namespace sf = jak::state_flags;
+    if (interaction().target->state_flags & (sf::tinvul1 | sf::tinvul2)) return 1;
     // His last hit point: the game's own hit, which kills him, as the board cannot (off the board).
     openrac_pose pose{};
-    if (mod().hero_pose(pose) && pose.health <= 1) {
+    const float damage = hit->damage > 0.0f ? hit->damage : 1.0f;
+    if (mod().hero_pose(pose) && static_cast<float>(pose.health) <= (ctx().rac2 ? damage : 1.0f)) {
         interaction().left = true;
         return 0;
     }
@@ -167,6 +189,28 @@ int on_moby_hit(void*, const openrac_hit* hit) {
         g_hit.damage = hit->damage > 0.0f ? hit->damage : 1.0f;
     }
     return 1; // taken: the board's hit state deals with it
+}
+
+// Going Commando does not call on_moby_hit, so the hit waiting for his moby is read each frame
+// (Moby_GetHitMessage; its index in the hit ring is at moby +0xA8). A taken hit's index is cleared.
+// The last hit is left for the game, which kills him.
+void poll_hits() {
+    if (!ctx().rac2) return;
+    static const auto get =
+        mod().function<rac2::Moby_GetHitMessage::fn>(rac2::Moby_GetHitMessage::name);
+    const openrac::Memory mem = mod().memory();
+    const uint32_t moby = mem.read<uint32_t>(hero_states(0) - 4u); // the hero's moby (+0x2290)
+    if (!get || moby == 0) return;
+    const uint32_t entry = get(moby, 0xFFFFFFFFu, 1);
+    if (entry == 0) return;
+    openrac_hit h{};
+    h.size = sizeof h;
+    h.victim = mod().figure_slot(-1);
+    h.attacker = -1;
+    h.mask = mem.read<uint32_t>(entry + 0x24u);
+    h.damage = mem.read<float>(entry + 0x2Cu);
+    for (int i = 0; i < 3; ++i) h.position[i] = mem.read<float>(entry + 4u * static_cast<uint32_t>(i));
+    if (on_moby_hit(nullptr, &h)) mem.write<uint8_t>(moby + 0xA8u, 0xFF);
 }
 
 // The hit as Jak II's enemies send theirs: 'attack with an attack-info of a new id, its mode and
@@ -211,9 +255,7 @@ void touch_creatures(jak::Target& t) {
         if (!(m.flags & OPENRAC_MOBY_CREATURE) || (m.flags & OPENRAC_MOBY_DEAD) || m.slot == self) continue;
         const float dx = m.position[0] - hero[0], dy = m.position[1] - hero[1], dz = m.position[2] - hero[2];
         if (dx * dx + dy * dy > 1.2f * 1.2f || dz < -1.0f || dz > 2.0f) continue;
-        auto it = g_touched.find(m.slot);
-        if (it != g_touched.end() && ctx().clock - it->second < jak::seconds(0.5)) continue;
-        g_touched[m.slot] = ctx().clock;
+        if (!touch_due(m.slot)) continue;
         static const int kTouching = 0; // a touching-shapes-entry the adapter does not read
         jak::EventMessage e;
         e.message = jak::Symbol("touched");
@@ -221,6 +263,23 @@ void touch_creatures(jak::Target& t) {
         e.num_params = 1;
         e.touching = &kTouching;
         jak::send_event(t, e);
+    }
+}
+
+// The crates' classes (500 to 511 in both games; Going Commando's second explosive crate, 2380).
+bool is_crate(int oclass) { return (oclass >= 500 && oclass <= 511) || (ctx().rac2 && oclass == 2380); }
+
+// Each crate he rides into breaks, as a wrench hit breaks it (the board bounces off it first: its
+// box is solid, so the reach is the board's length past its side).
+void break_crates(jak::Target& t) {
+    float hero[3];
+    to_game_point(t.control.trans, hero);
+    for (const openrac_moby& m : mod().moby_list()) {
+        if (!is_crate(m.oclass) || (m.flags & OPENRAC_MOBY_DEAD)) continue;
+        const float dx = m.position[0] - hero[0], dy = m.position[1] - hero[1], dz = m.position[2] - hero[2];
+        if (dx * dx + dy * dy > 1.3f * 1.3f || dz < -1.2f || dz > 0.8f) continue;
+        if (!touch_due(m.slot)) continue;
+        hit_creature(t, static_cast<jak::Handle>(m.slot) + 1);
     }
 }
 
@@ -235,5 +294,7 @@ bool Interaction::camera_vectors(jak::Vec& view_flat, jak::Vec& target_move, jak
 }
 
 void Interaction::camera_relative_position(const jak::Vec* v) { camera_relative(v); }
+
+bool Interaction::hold_combo() { return target && manual().hold(*target, grab_held()); }
 
 } // namespace rac1

@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Mateusz Kłysz
-"""Writes the RAC-Board's model: assets/board.glb and its texture assets/board.png.
+"""Writes the RAC-Board's model: assets/board.glb and its texture assets/board.png (orange, for
+Ratchet & Clank), and assets/board-rac2.glb with assets/board-rac2.png (blue, for Going Commando).
 
 Everything is made here from numbers, so the model is the mod's own (nothing from either game):
 a deck with a kicked nose and tail, a grip stripe, a hover body under it with two glowing jets and
-tail fins, and a grey and orange paint with a glowing fan underneath. The model is in metres,
+tail fins, and a grey paint with orange or blue parts and a glowing fan underneath. The model is in metres,
 glTF's axes: +y up, +z the nose, the deck's top at y = 0 (where the rider's feet go), centred on the origin.
 
-    python3 tools/make_board.py            # writes assets/board.glb and assets/board.png
+    python3 tools/make_board.py            # writes both models and their textures
 
 Python 3 standard library only.
 """
@@ -42,9 +43,15 @@ REGIONS = {  # name: (u0, v0, u1, v1) in texels
     "glow": (192, 160, 256, 256),
 }
 
-# The paint: grey plates, orange caps and rails (Ratchet's orange), a dark grip, a blue glow.
+# The paint: grey plates, coloured caps and rails, a dark grip, a blue glow.
 PLATE, PLATE_DARK = (132, 140, 146), (92, 100, 108)
-ORANGE, ORANGE_DARK, ORANGE_LIGHT = (240, 116, 30), (176, 70, 16), (255, 178, 92)
+# Each model's colour for the caps and rails (normal, dark, light) and the fan's rim (light, dark):
+# Ratchet's orange, and a blue.
+PAINTS = {
+    "board": ((240, 116, 30), (176, 70, 16), (255, 178, 92), (150, 104, 66), (100, 70, 44)),
+    "board-rac2": ((36, 118, 232), (16, 58, 150), (118, 188, 255), (66, 98, 150), (44, 64, 100)),
+}
+ACCENT, ACCENT_DARK, ACCENT_LIGHT, RIM, RIM_DARK = PAINTS["board"]
 GRIP, SEAM = (58, 60, 66), (64, 70, 76)
 GLOW = (100, 214, 255)
 
@@ -71,8 +78,8 @@ def rgba(c):
 
 
 def top(u, v, x, y):
-    """The deck: grey plates with seams, orange caps at nose and tail with rivets, orange rails
-    along the edges, a cross-hatched grip down the middle and an orange dome on a ring."""
+    """The deck: grey plates with seams, coloured caps at nose and tail with rivets, coloured rails
+    along the edges, a cross-hatched grip down the middle and a coloured dome on a ring."""
     a, b = (u - 0.5) * 2, (v - 0.5) * 2  # b: -1 tail, +1 nose
     ax = abs(a)
     c = mix(PLATE, PLATE_DARK, ax ** 2.2 * 0.7 + abs(b) ** 3 * 0.2)
@@ -85,8 +92,8 @@ def top(u, v, x, y):
             c = mix(c, (255, 255, 255), 0.12)
     cap = abs(b) - 0.70 + 0.12 * a * a
     if cap > 0:
-        c = mix(ORANGE, ORANGE_DARK, cap * 2.2 + ax ** 2 * 0.5)
-        c = mix(c, ORANGE_LIGHT, max(0.0, 0.5 - ax) * 0.8 * max(0.0, 1 - cap * 4))
+        c = mix(ACCENT, ACCENT_DARK, cap * 2.2 + ax ** 2 * 0.5)
+        c = mix(c, ACCENT_LIGHT, max(0.0, 0.5 - ax) * 0.8 * max(0.0, 1 - cap * 4))
         if cap < 0.02:
             c = mix(c, SEAM, 0.7)
         for k in (-0.55, 0.0, 0.55):
@@ -94,7 +101,7 @@ def top(u, v, x, y):
                 c = mix(c, (230, 232, 236), 0.8)
         return rgba(c)
     if ax > 0.86:
-        c = mix(ORANGE, ORANGE_DARK, (ax - 0.86) * 6)
+        c = mix(ACCENT, ACCENT_DARK, (ax - 0.86) * 6)
         if ax < 0.88:
             c = mix(c, SEAM, 0.6)
     elif ax < 0.30 and abs(b) < 0.62:
@@ -104,7 +111,7 @@ def top(u, v, x, y):
             c = mix(c, SEAM, 0.5)
     r = math.hypot(a * WIDTH, b * LENGTH) / 2
     if r < 0.055:
-        c = mix(mix(ORANGE, (255, 255, 255), 0.35), mix(ORANGE, (0, 0, 0), 0.35), r / 0.055 + b * 2)
+        c = mix(mix(ACCENT, (255, 255, 255), 0.35), mix(ACCENT, (0, 0, 0), 0.35), r / 0.055 + b * 2)
     elif r < 0.072:
         c = mix((200, 204, 208), (120, 126, 132), (r - 0.055) / 0.017)
         if r > 0.068:
@@ -113,7 +120,7 @@ def top(u, v, x, y):
 
 
 def bottom(u, v, x, y):
-    """Under the deck: a swirled fan of glowing blades round a silver hub, an orange rim."""
+    """Under the deck: a swirled fan of glowing blades round a silver hub, a coloured rim."""
     a, b = (u - 0.5) * 2 * WIDTH / LENGTH, (v - 0.5) * 2
     r, ang = math.hypot(a, b), math.atan2(b, a)
     c = mix((74, 86, 102), (44, 52, 64), r)
@@ -128,21 +135,21 @@ def bottom(u, v, x, y):
         if e < 0.06:
             c = mix(GLOW, (50, 130, 200), e / 0.06)
     elif r < 0.84:
-        c = mix((150, 104, 66), (100, 70, 44), (r - 0.78) / 0.06)
+        c = mix(RIM, RIM_DARK, (r - 0.78) / 0.06)
     else:
-        c = mix(ORANGE_DARK, ORANGE, 0.5 + 0.3 * grain(x // 4, y // 4, 5))
+        c = mix(ACCENT_DARK, ACCENT, 0.5 + 0.3 * grain(x // 4, y // 4, 5))
     return rgba(c)
 
 
 def side(u, v, x, y):
     if v < 0.45:
-        return rgba(mix(ORANGE, ORANGE_DARK, v * 1.6))
+        return rgba(mix(ACCENT, ACCENT_DARK, v * 1.6))
     return rgba(mix((150, 156, 162), (90, 96, 104), (v - 0.45) * 1.8))
 
 
 def pod(u, v, x, y):
     base = mix((176, 182, 188), (92, 98, 106), abs(u - 0.5) * 2)
-    return rgba(mix(base, ORANGE, 0.9) if (v * 5) % 1.0 < 0.16 else base)
+    return rgba(mix(base, ACCENT, 0.9) if (v * 5) % 1.0 < 0.16 else base)
 
 
 def glow(u, v, x, y):
@@ -293,7 +300,7 @@ def underbody(m):
         m.idx += [a, c, b] if sx > 0 else [a, b, c]
 
 
-def glb(m):
+def glb(m, image):
     def pack(fmt, rows):
         return b"".join(struct.pack(fmt, *r) for r in rows)
 
@@ -322,7 +329,7 @@ def glb(m):
             "baseColorTexture": {"index": 0}, "metallicFactor": 0.0, "roughnessFactor": 0.8}}],
         "textures": [{"source": 0, "sampler": 0}],
         "samplers": [{"magFilter": 9729, "minFilter": 9729, "wrapS": 33071, "wrapT": 33071}],
-        "images": [{"uri": "board.png"}],
+        "images": [{"uri": image}],
         "buffers": [{"byteLength": len(data)}],
         "bufferViews": views,
         "accessors": [
@@ -344,8 +351,11 @@ def main():
     deck(m)
     underbody(m)
     OUT.mkdir(exist_ok=True)
-    (OUT / "board.glb").write_bytes(glb(m))
-    (OUT / "board.png").write_bytes(png(texture()))
+    global ACCENT, ACCENT_DARK, ACCENT_LIGHT, RIM, RIM_DARK
+    for name, paint in PAINTS.items():
+        ACCENT, ACCENT_DARK, ACCENT_LIGHT, RIM, RIM_DARK = paint
+        (OUT / f"{name}.glb").write_bytes(glb(m, f"{name}.png"))
+        (OUT / f"{name}.png").write_bytes(png(texture()))
     print(f"board.glb: {len(m.pos)} vertices, {len(m.idx) // 3} triangles")
 
 

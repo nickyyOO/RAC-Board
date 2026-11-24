@@ -40,6 +40,8 @@ class Interaction : public jak::Interaction {
     bool process_trans(jak::Handle h, jak::Vec& out) override;
     void shock_effect() override;
     void go_target_state(jak::Target& t, jak::StateId state, const jak::StateArgs& args) override;
+    // A manual on (or landing into one) keeps the combo going.
+    bool hold_combo() override;
 
     // Whether the board's code left for one of the target's own states (the ride is over).
     bool left = false;
@@ -54,8 +56,12 @@ Interaction& interaction();
 int on_moby_hit(void* user, const openrac_hit* hit);
 // Gives the board the hit the game posted on Ratchet since the last frame, if any.
 bool deliver_hit(jak::Target& t);
+// Going Commando: takes the hit the game left for Ratchet's moby (on_moby_hit is not called there).
+void poll_hits();
 // Sends 'touched for each creature he rides into (at most once each half second).
 void touch_creatures(jak::Target& t);
+// Breaks each crate he rides into, as the wrench does.
+void break_crates(jak::Target& t);
 
 // Where the target is drawn: its trans lifted by the draw offset (the cushion and the shock).
 jak::Vec drawn_trans(const jak::Target& t);
