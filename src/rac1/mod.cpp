@@ -15,7 +15,6 @@
 //   fx/            sounds, particles and the trick combo line
 //   anim/          Ratchet's riding clips and their secondary motion
 #include "openrac/games/rac1.hpp"
-#include "openrac/games/rac2.hpp"
 #include "rac1/context.hpp"
 #include "rac1/fx/effects.hpp"
 #include "rac1/fx/records.hpp"
@@ -27,6 +26,15 @@
 namespace {
 
 using namespace rac1;
+
+// Going Commando's hero update (rac2.player.update), as newer SDKs' games/rac2.hpp name it: written
+// here so the mod builds against older SDKs too. An OpenRAC without it refuses the hook.
+struct Rac2HeroUpdate {
+    static constexpr const char* id = "rac2.player.update";
+    static constexpr const char* name = "Hero_Update";
+    static constexpr const char* signature = "void()";
+    using fn = void (*)();
+};
 
 // The hero's update: the board's frame while riding, the game's otherwise.
 void hero_update(const openrac::Original<void()>& original) {
@@ -95,7 +103,7 @@ int load(openrac::Mod& m) {
         }
     });
     if (rac2) {
-        m.hook<openrac::rac2::Hero_Update>([](const auto& original) { hero_update(original); });
+        m.hook<Rac2HeroUpdate>([](const auto& original) { hero_update(original); });
     } else {
         m.hook<openrac::rac1::Hero_Update>([](const auto& original) { hero_update(original); });
     }
