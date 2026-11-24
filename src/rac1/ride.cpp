@@ -248,7 +248,7 @@ bool grounded(jak::StateId st) {
 // Going Commando poses what he wears on his head (the helmets) from his neck (joint 7), not his
 // head (8): the head's turn goes onto the neck, so the head and the helmet turn together.
 void fold_head_into_neck(std::vector<openrac_joint_offset>& offsets) {
-    constexpr uint32_t kNeck = 7, kHead = 8;
+    static constexpr uint32_t kNeck = 7, kHead = 8; // static, so MSVC lambdas can use them
     const auto head = std::find_if(offsets.begin(), offsets.end(), [](const auto& o) { return o.joint == kHead; });
     if (head == offsets.end()) return;
     const openrac_joint_offset h = *head;
