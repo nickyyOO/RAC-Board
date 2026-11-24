@@ -82,7 +82,9 @@ Ground ground_under(const float feet[3]) {
 }
 
 float fall_death_height() {
-    // The level's fall height (NTSC-U D_L00_0015F638, PAL D_L00_0015F718), where the level keeps it.
+    // The level's fall height, where the level keeps it: Ratchet & Clank NTSC-U D_L00_0015F638
+    // (PAL D_L00_0015F718), Going Commando D_L00_001B1AE8 (USA v2.00 D_L00_001B1A68).
+    if (ctx().rac2) return mod().memory().read<float>(mod().relocate_level(0, ctx().v200 ? 0x001B1A68u : 0x001B1AE8u));
     return mod().memory().read<float>(mod().relocate_level(0, ctx().pal ? 0x0015F718u : 0x0015F638u));
 }
 

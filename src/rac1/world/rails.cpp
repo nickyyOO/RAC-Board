@@ -14,10 +14,17 @@ namespace rac1 {
 namespace {
 
 // The level's spline table (LevelSpline, 0x20 bytes each: bounds, path, kind) and its count, kept by
-// each level's program. Their addresses are Veldin's (NTSC-U D_L00_0015F70C and D_L00_0015F710),
-// each moved to where the level loaded now keeps it (a level may not keep the two side by side).
-openrac::gaddr table_address() { return mod().relocate_level(0, ctx().pal ? 0x0015F7ECu : 0x0015F70Cu); }
-openrac::gaddr count_address() { return mod().relocate_level(0, ctx().pal ? 0x0015F7F0u : 0x0015F710u); }
+// each level's program. Their addresses are level 0's (Ratchet & Clank NTSC-U D_L00_0015F70C and
+// D_L00_0015F710; Going Commando D_L00_001B16C0 and D_L00_001B16C4, USA v2.00 0x80 lower), each
+// moved to where the level loaded now keeps it (a level may not keep the two side by side).
+openrac::gaddr table_address() {
+    if (ctx().rac2) return mod().relocate_level(0, ctx().v200 ? 0x001B1640u : 0x001B16C0u);
+    return mod().relocate_level(0, ctx().pal ? 0x0015F7ECu : 0x0015F70Cu);
+}
+openrac::gaddr count_address() {
+    if (ctx().rac2) return mod().relocate_level(0, ctx().v200 ? 0x001B1644u : 0x001B16C4u);
+    return mod().relocate_level(0, ctx().pal ? 0x0015F7F0u : 0x0015F710u);
+}
 
 // The top of game memory a pointer may reach: 32 MiB, or 256 MiB when the port mounts a large
 // custom level in expanded memory (its tables then lie past the console's 32 MiB).

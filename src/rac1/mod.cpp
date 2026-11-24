@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Mateusz Kłysz
 //
-// RAC-Board in Ratchet & Clank: the mod's entry. While Ratchet rides, the mod takes his update
-// (rac1.player.update) and runs one frame of Jak II's target on the board (src/jak and src/board,
+// RAC-Board in Ratchet & Clank and Going Commando: the mod's entry. While Ratchet rides, the mod
+// takes his update (rac1.player.update, rac2.player.update) and runs one frame of Jak II's target on the board (src/jak and src/board,
 // ported from OpenGOAL) in his place. Off the board the game's own update runs, untouched.
 //
 // The adapter's parts (src/rac1):
@@ -15,6 +15,7 @@
 //   fx/            sounds, particles and the trick combo line
 //   anim/          Ratchet's riding clips and their secondary motion
 #include "openrac/games/rac1.hpp"
+#include "openrac/games/rac2.hpp"
 #include "rac1/context.hpp"
 #include "rac1/fx/effects.hpp"
 #include "rac1/fx/records.hpp"
@@ -27,7 +28,7 @@ namespace {
 
 using namespace rac1;
 
-// rac1.player.update: the board's frame while riding, the game's otherwise.
+// The hero's update: the board's frame while riding, the game's otherwise.
 void hero_update(const openrac::Original<void()>& original) {
     // Under the pause menu (the port runs the level on under it) the board stands still, as the
     // game's world does.
@@ -67,8 +68,10 @@ void hero_update(const openrac::Original<void()>& original) {
 }
 
 int load(openrac::Mod& m) {
-    if (m.game() != "rac1" || (m.version() != "pal" && m.version() != "ntsc")) {
-        m.fail("RAC-Board knows Ratchet & Clank's PAL and NTSC-U discs only");
+    const bool rac1 = m.game() == "rac1" && (m.version() == "pal" || m.version() == "ntsc");
+    const bool rac2 = m.game() == "rac2" && (m.version() == "pal" || m.version() == "ntsc" || m.version() == "ntsc2");
+    if (!rac1 && !rac2) {
+        m.fail("RAC-Board knows Ratchet & Clank's PAL and NTSC-U discs and Going Commando's only");
         return 1;
     }
     if (!m.has_api_12()) {
@@ -76,7 +79,9 @@ int load(openrac::Mod& m) {
         return 1;
     }
     ctx().mod = &m;
+    ctx().rac2 = rac2;
     ctx().pal = m.version() == "pal";
+    ctx().v200 = rac2 && m.version() == "ntsc2";
     load_settings(m);
     records().load(m.data_dir());
     if (m.has_world()) m.on_moby_hit(on_moby_hit);
@@ -89,7 +94,11 @@ int load(openrac::Mod& m) {
             effects().resume_sounds();
         }
     });
-    m.hook<openrac::rac1::Hero_Update>([](const auto& original) { hero_update(original); });
+    if (rac2) {
+        m.hook<openrac::rac2::Hero_Update>([](const auto& original) { hero_update(original); });
+    } else {
+        m.hook<openrac::rac1::Hero_Update>([](const auto& original) { hero_update(original); });
+    }
     m.info("RAC-Board ready");
     return 0;
 }

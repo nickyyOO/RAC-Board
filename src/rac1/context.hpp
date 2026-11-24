@@ -43,7 +43,9 @@ struct Settings {
 
 struct Context {
     openrac::Mod* mod = nullptr;
+    bool rac2 = false;  // Going Commando, else Ratchet & Clank
     bool pal = false;
+    bool v200 = false;  // Going Commando's USA v2.00 disc
     Settings settings;
     jak::TimeFrame clock = 3000; // the board's clock: 300 ticks a second, on all the time
 };
@@ -61,7 +63,11 @@ void load_settings(openrac::Mod& mod);
 bool playing();
 // A line in the trace log, when the trace setting is on.
 void trace(const std::string& line);
-// A field of the hero's record, g_hero (PAL D_0013F450, NTSC-U D_0013F350).
-openrac::gaddr hero_field(uint32_t offset);
+// A field of the hero's state block: his state (+0), its step (+4), his control mode (+8), the
+// wrench request (+0x22) and the item request (+0x34). The block is at +0x2084 of Ratchet &
+// Clank's hero record and at +0x2294 of Going Commando's.
+openrac::gaddr hero_states(uint32_t offset);
+// The item id of the wrench.
+int32_t wrench_item();
 
 } // namespace rac1

@@ -31,7 +31,7 @@
 
 ## What is it?
 
-A mod that gives Ratchet Jak II's JET-Board.
+A mod that gives Ratchet Jak II's JET-Board, in Ratchet & Clank and Going Commando.
 
 - **Jak II's real board logic.** The states, physics, tricks and collision are Jak II's code, ported line by line.
 - **Its quirks too.** Hovers, extended flips and the other speedrun glitches work as in Jak II.
@@ -47,10 +47,10 @@ A mod that gives Ratchet Jak II's JET-Board.
 
 ## Install
 
-1. Get [OpenRAC](https://github.com/OpenRAC/OpenRAC) with mod interface 1.12 or newer.
+1. Get [OpenRAC](https://github.com/OpenRAC/OpenRAC) with mod interface 1.12 or newer (Going Commando needs one with its `rac2.player.update` hook).
 2. In the launcher, open the **Mods** tab.
 3. Paste `https://github.com/mateuszklysz/rac-board` and install.
-4. Play Ratchet & Clank (PAL or NTSC-U) and press **D-pad Up** to get on.
+4. Play Ratchet & Clank (PAL or NTSC-U) or Going Commando (PAL, USA or USA v2.00) and press **D-pad Up** to get on.
 
 ## Controls
 
@@ -102,7 +102,7 @@ Push a tag `v<version>` and the build workflow publishes a release the launcher 
 </p>
 
 - [OpenGOAL](https://github.com/open-goal/jak-project) for the decompiled Jak II code the board is ported from.
-- [OpenRAC](https://github.com/OpenRAC/OpenRAC) for the native Ratchet & Clank and its mod interface.
+- [OpenRAC](https://github.com/OpenRAC/OpenRAC) for the native Ratchet & Clank and Going Commando and their mod interface.
 
 ## Licence
 

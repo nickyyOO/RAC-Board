@@ -12,10 +12,16 @@
     "rac1": [
       "pal",
       "ntsc"
+    ],
+    "rac2": [
+      "pal",
+      "ntsc",
+      "ntsc2"
     ]
   },
   "hooks": [
-    "rac1.player.update"
+    "rac1.player.update",
+    "rac2.player.update"
   ],
   "assets": "assets",
   "settings": [

@@ -469,11 +469,11 @@ namespace {
 // plays it on after the ride as a new swing. True when one ended.
 bool end_attack() {
     const openrac::Memory mem = mod().memory();
-    if (mem.read<int32_t>(hero_field(0x208Cu)) != 6) return false;
-    trace("attack in hero state " + std::to_string(mem.read<int32_t>(hero_field(0x2084u))) + " ended");
-    mem.write<int32_t>(hero_field(0x2084u), 0);
-    mem.write<int32_t>(hero_field(0x2088u), 0);
-    mem.write<int32_t>(hero_field(0x208Cu), 0);
+    if (mem.read<int32_t>(hero_states(8)) != 6) return false;
+    trace("attack in hero state " + std::to_string(mem.read<int32_t>(hero_states(0))) + " ended");
+    mem.write<int32_t>(hero_states(0), 0);
+    mem.write<int32_t>(hero_states(4), 0);
+    mem.write<int32_t>(hero_states(8), 0);
     return true;
 }
 
@@ -595,7 +595,8 @@ RideStep tick_ride(bool toggle) {
 
     // A hit the board takes (its hit state) costs him a hit point, as one on foot does.
     if (deliver_hit(t) && g_ride.rt->pending && g_ride.rt->pending_state == jak::StateId::target_board_hit) {
-        mod().hero_hurt(1);
+        // Going Commando's port has no hero_hurt: the hit goes straight to his health.
+        if (!mod().hero_hurt(1)) interaction().pickup_health(-1.0f);
     }
     if (mod().has_world()) touch_creatures(t);
     carry(t);

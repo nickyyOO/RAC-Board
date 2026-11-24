@@ -69,8 +69,13 @@ void trace(const std::string& line) {
     if (settings().trace) mod().info(line);
 }
 
-openrac::gaddr hero_field(uint32_t offset) {
-    return mod().relocate(ctx().pal ? 0x0013F450u : 0x0013F350u) + offset;
+openrac::gaddr hero_states(uint32_t offset) {
+    // The hero record: Ratchet & Clank's g_hero (PAL D_0013F450, NTSC-U D_0013F350), Going
+    // Commando's (PAL D_00189EA0, USA D_00189E20).
+    if (ctx().rac2) return mod().relocate(ctx().pal ? 0x00189EA0u : 0x00189E20u) + 0x2294u + offset;
+    return mod().relocate(ctx().pal ? 0x0013F450u : 0x0013F350u) + 0x2084u + offset;
 }
+
+int32_t wrench_item() { return ctx().rac2 ? 10 : 8; }
 
 } // namespace rac1

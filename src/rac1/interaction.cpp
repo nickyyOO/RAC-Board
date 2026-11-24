@@ -10,6 +10,7 @@
 #include "jak/math/math.hpp"
 #include "jak/movement.hpp"
 #include "openrac/games/rac1.hpp"
+#include "openrac/games/rac2.hpp"
 #include "rac1/camera.hpp"
 #include "rac1/context.hpp"
 #include "rac1/convert.hpp"
@@ -67,11 +68,18 @@ float Interaction::health() {
 
 void Interaction::pickup_health(float amount) {
     if (amount >= 0.0f) return;
-    static const auto take =
-        mod().function<openrac::rac1::Hero_TakeDamage::fn>(openrac::rac1::Hero_TakeDamage::name);
-    // Hero_TakeDamage takes one hit point a call; the instant deaths take them all.
-    const int n = static_cast<int>(std::min(-amount, 100.0f) + 0.5f);
-    for (int i = 0; i < std::max(n, 1) && take; ++i) take(1);
+    // Hero_TakeDamage: Ratchet & Clank's takes one hit point a call; Going Commando's takes a hit's
+    // points at once (its health is in tens: a board hit costs 10). The instant deaths take them all.
+    static const auto take = ctx().rac2
+        ? mod().function<openrac::rac2::Hero_TakeDamage::fn>(openrac::rac2::Hero_TakeDamage::name)
+        : mod().function<openrac::rac1::Hero_TakeDamage::fn>(openrac::rac1::Hero_TakeDamage::name);
+    const int n = std::max(static_cast<int>(std::min(-amount, 100.0f) + 0.5f), 1);
+    if (!take) return;
+    if (ctx().rac2) {
+        take(n * 10);
+    } else {
+        for (int i = 0; i < n; ++i) take(1);
+    }
 }
 
 jak::TimeFrame Interaction::game_clock_frame_counter() { return ctx().clock; }
