@@ -78,4 +78,6 @@ openrac::gaddr hero_states(uint32_t offset) {
 
 int32_t wrench_item() { return ctx().rac2 ? 10 : 8; }
 
+const char* board_mesh() { return ctx().rac2 ? "assets/board-rac2.glb" : "assets/board.glb"; }
+
 } // namespace rac1

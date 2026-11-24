@@ -51,21 +51,23 @@ int Effects::sound(const char* name) {
     return s;
 }
 
-// The mod's own sounds (assets/sounds) and every mesh a prop of the mod's draws.
+// The mod's own sounds (assets/sounds) and the effects' meshes.
 constexpr const char* kSoundFiles[] = {"board-bank",  "board-boost",     "board-boots",  "board-bounce",
                                        "board-glance", "board-spin-loop", "board-steady", "board-turn",
                                        "board-wind",   "get-burned",      "swim-enter"};
-constexpr const char* kPropMeshes[] = {"assets/board.glb",    "assets/fx/compass.glb", "assets/fx/glow.glb",
-                                       "assets/fx/streak.glb", "assets/fx/ring.glb",    "assets/fx/puff.glb",
-                                       "assets/fx/burst.glb"};
+constexpr const char* kFxMeshes[] = {"assets/fx/compass.glb", "assets/fx/glow.glb", "assets/fx/streak.glb",
+                                     "assets/fx/ring.glb",    "assets/fx/puff.glb", "assets/fx/burst.glb"};
 
 void Effects::warm() {
     if (m_warm) return;
     // A prop is made only in a level: all of them in one frame, so the port reads the level again
     // once, here, and keeps the meshes for every level after.
-    int ids[std::size(kPropMeshes)];
-    for (std::size_t i = 0; i < std::size(kPropMeshes); ++i) {
-        ids[i] = mod().prop_create(kPropMeshes[i]);
+    // The board's model first, then the effects'.
+    const char* meshes[1 + std::size(kFxMeshes)] = {board_mesh()};
+    std::copy(std::begin(kFxMeshes), std::end(kFxMeshes), meshes + 1);
+    int ids[std::size(meshes)];
+    for (std::size_t i = 0; i < std::size(meshes); ++i) {
+        ids[i] = mod().prop_create(meshes[i]);
         if (ids[i] < 0) {
             for (std::size_t j = 0; j < i; ++j) mod().prop_remove(ids[j]);
             return; // not in a level yet (or no props free): the next frame tries again

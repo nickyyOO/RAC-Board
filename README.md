@@ -37,10 +37,10 @@ A mod that gives Ratchet Jak II's JET-Board, in Ratchet & Clank and Going Comman
 - **Its quirks too.** Hovers, extended flips and the other speedrun glitches work as in Jak II.
 - **Grind any rail.** Every grind rail in the game can be ridden, plus any edge Jak could grind.
 - **Tricks and combos.** Spins, flips, grabs, boosts, with Jak II's names and points on screen.
-- **Rides into things.** Crates break and enemies take a hit when he rides into them. Enemies hurt him on the board and can still kill him.
+- **Rides into things.** Crates break and enemies get hit when he rides into them. Enemies can hurt and kill him on the board.
 - **Combo records.** Your best combo on each planet is saved. Beat it and the game tells you.
 - **Ratchet's own style.** He rides in clips made for him, with Clank on his back.
-- **Nothing from the discs.** The board model, sounds and effects are made by this repo's tools.
+- **Nothing from the discs.** The board model, sounds and effects are made by this repo's tools. The board is orange in Ratchet & Clank and blue in Going Commando.
 
 <p align="center">
   <img src="docs/readme/ride.gif" alt="Ratchet does a flip and a spin on the board on Pokitaru" width="100%">
@@ -66,9 +66,9 @@ The board takes these buttons only while Ratchet rides. On foot the game's contr
 | Duck, duck jump, grabs in the air | L1 | L1 |
 | Manual: land holding L1, balance with the right stick | L1 + right stick | (RAC-Board's own) |
 
-- No weapons or gadgets on the board: Ratchet puts his away and takes the wrench as he gets on, and Circle and Triangle do nothing while he rides. Square keeps the game's job.
+- No weapons or gadgets on the board: his hand is empty while he rides, and Circle and Triangle do nothing. Square keeps the game's job. A weapon picked in the pause menu while riding goes to his hand when he gets off.
 - In a trick a faint ring under Ratchet points where the board's nose is (the light orange pointer), and a dot shows where he is going: land with the two together for the boost. Within 40 degrees counts, and the board eases straight as it lands.
-- **Manual.** Land holding L1 and Ratchet rides on the board's tail. The combo keeps going into the next jump, and each second on the tail adds points. Keep the mark on the bar above the combo in the middle with the right stick: past the edge he bails and the combo is lost. Let go of L1 to bank the points.
+- **Manual.** Land holding L1 to ride on the board's tail. Each second adds points and the combo goes on into the next jump. Keep the mark in the middle of the bar with the right stick, or he bails and loses the combo. Let go of L1 to bank the points.
 - The spin, grind and duck buttons can be changed in the mod's settings (Jak II's layout too).
 - **Board camera** (off by default) is Jak II's camera. The right stick swings it round.
 - On a keyboard, **B** gets on and off (you can rebind it).

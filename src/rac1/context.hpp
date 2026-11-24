@@ -69,5 +69,7 @@ void trace(const std::string& line);
 openrac::gaddr hero_states(uint32_t offset);
 // The item id of the wrench.
 int32_t wrench_item();
+// The board's model: orange in Ratchet & Clank, blue in Going Commando (tools/make_board.py).
+const char* board_mesh();
 
 } // namespace rac1
