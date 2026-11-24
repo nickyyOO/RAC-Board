@@ -10,13 +10,13 @@
 #include "jak/math/math.hpp"
 #include "jak/movement.hpp"
 #include "openrac/games/rac1.hpp"
-#include "openrac/games/rac2.hpp"
 #include "rac1/camera.hpp"
 #include "rac1/context.hpp"
 #include "rac1/convert.hpp"
 #include "rac1/fx/effects.hpp"
 #include "rac1/manual.hpp"
 #include "rac1/pad.hpp"
+#include "rac1/rac2_hooks.hpp"
 
 namespace rac1 {
 
@@ -83,7 +83,7 @@ void Interaction::pickup_health(float amount) {
     if (ctx().rac2) {
         // Going Commando's Hero_TakeDamage takes the whole hit at once.
         static const auto take =
-            mod().function<openrac::rac2::Hero_TakeDamage::fn>(openrac::rac2::Hero_TakeDamage::name);
+            mod().function<rac2::Hero_TakeDamage::fn>(rac2::Hero_TakeDamage::name);
         if (take) take(n);
     } else {
         // Ratchet & Clank's takes at most one hit point a call.
@@ -197,7 +197,7 @@ int on_moby_hit(void*, const openrac_hit* hit) {
 void poll_hits() {
     if (!ctx().rac2) return;
     static const auto get =
-        mod().function<openrac::rac2::Moby_GetHitMessage::fn>(openrac::rac2::Moby_GetHitMessage::name);
+        mod().function<rac2::Moby_GetHitMessage::fn>(rac2::Moby_GetHitMessage::name);
     const openrac::Memory mem = mod().memory();
     const uint32_t moby = mem.read<uint32_t>(hero_states(0) - 4u); // the hero's moby (+0x2290)
     if (!get || moby == 0) return;
