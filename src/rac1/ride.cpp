@@ -244,6 +244,31 @@ bool grounded(jak::StateId st) {
            st == StateId::target_board_get_on || st == StateId::target_board_get_off;
 }
 
+// Going Commando poses what he wears on his head (the helmets) from his neck (joint 7), not his
+// head (8): the head's turn goes onto the neck, so the head and the helmet turn together.
+void fold_head_into_neck(std::vector<openrac_joint_offset>& offsets) {
+    constexpr uint32_t kNeck = 7, kHead = 8;
+    const auto head = std::find_if(offsets.begin(), offsets.end(), [](const auto& o) { return o.joint == kHead; });
+    if (head == offsets.end()) return;
+    const openrac_joint_offset h = *head;
+    offsets.erase(head);
+    auto neck = std::find_if(offsets.begin(), offsets.end(), [](const auto& o) { return o.joint == kNeck; });
+    if (neck == offsets.end()) {
+        openrac_joint_offset n{};
+        n.joint = kNeck;
+        n.rotation[3] = 1.0f;
+        offsets.push_back(n);
+        neck = offsets.end() - 1;
+    }
+    const float* a = neck->rotation;
+    const float* b = h.rotation;
+    const float q[4] = {a[3] * b[0] + b[3] * a[0] + (a[1] * b[2] - a[2] * b[1]),
+                        a[3] * b[1] + b[3] * a[1] + (a[2] * b[0] - a[0] * b[2]),
+                        a[3] * b[2] + b[3] * a[2] + (a[0] * b[1] - a[1] * b[0]),
+                        a[3] * b[3] - (a[0] * b[0] + a[1] * b[1] + a[2] * b[2])};
+    std::copy(q, q + 4, neck->rotation);
+}
+
 // Ratchet's body: his place and heading, held in his standing pose, the riding pose over it.
 void show_ratchet(openrac_pose& pose, float yaw, bool last) {
     const jak::Target& t = *g_ride.t;
@@ -324,6 +349,7 @@ void show_ratchet(openrac_pose& pose, float yaw, bool last) {
         std::memcpy(offsets[i].rotation, js[i].q, sizeof js[i].q);
         std::memcpy(offsets[i].translation, js[i].t, sizeof js[i].t);
     }
+    if (ctx().rac2) fold_head_into_neck(offsets);
     g_last_offsets = offsets;
     g_ride.pose_in = std::min(1.0f, g_ride.pose_in + dt / kPoseIn);
     // The joints first: what he wears on his head (Going Commando's helmets) is posed from them as
