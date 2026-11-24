@@ -2,8 +2,8 @@
 // Copyright (c) 2026 Mateusz Kłysz
 //
 // RAC-Board in Ratchet & Clank and Going Commando: the mod's entry. While Ratchet rides, the mod
-// takes his update (rac1.player.update, rac2.player.update) and runs one frame of Jak II's target on the board (src/jak and src/board,
-// ported from OpenGOAL) in his place. Off the board the game's own update runs, untouched.
+// takes his update (rac1.player.update, rac2.player.update) and runs one frame of Jak II's target
+// on the board (src/jak and src/board, ported from OpenGOAL) in his place. Off the board the game's own update runs, untouched.
 //
 // The adapter's parts (src/rac1):
 //   context.*      settings, the board's clock, the mod's API
@@ -27,8 +27,8 @@ namespace {
 
 using namespace rac1;
 
-// Going Commando's hero update (rac2.player.update), as newer SDKs' games/rac2.hpp name it: written
-// here so the mod builds against older SDKs too. An OpenRAC without it refuses the hook.
+// Going Commando's hero update (rac2.player.update). Newer SDKs have it in games/rac2.hpp; it is
+// written here so the mod still builds with older ones. An OpenRAC without it refuses the hook.
 struct Rac2HeroUpdate {
     static constexpr const char* id = "rac2.player.update";
     static constexpr const char* name = "Hero_Update";

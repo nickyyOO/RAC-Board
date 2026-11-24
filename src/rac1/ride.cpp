@@ -453,7 +453,7 @@ void show_board(const openrac_pose& pose, float yaw) {
                            p[0] + o[0],    p[1] + o[1],    p[2] + o[2],    1.0f};
     if (g_board_prop < 0 || !mod().prop_pose(g_board_prop, mat)) {
         // None yet, or gone with its level: a new one.
-        g_board_prop = mod().prop_create("assets/board.glb");
+        g_board_prop = mod().prop_create(board_mesh());
         trace("board prop " + std::to_string(g_board_prop));
         if (g_board_prop >= 0) mod().prop_pose(g_board_prop, mat);
     }
@@ -673,12 +673,9 @@ RideStep tick_ride(bool toggle) {
     t.camera_local_to_world = camera_matrix(hero, jak_forward_to_yaw(fwd));
     feed_pad(t, toggle);
 
-    // A hit the board takes (its hit state) costs him a hit point, as one on foot does.
+    // A hit the board takes: its hit state takes the damage off his health (pickup_health).
     poll_hits();
-    if (deliver_hit(t) && g_ride.rt->pending && g_ride.rt->pending_state == jak::StateId::target_board_hit) {
-        // Going Commando's port has no hero_hurt: the hit's damage goes straight to his health.
-        if (!mod().hero_hurt(1)) interaction().pickup_health(-last_hit_damage());
-    }
+    deliver_hit(t);
     if (mod().has_world()) {
         touch_creatures(t);
         break_crates(t);

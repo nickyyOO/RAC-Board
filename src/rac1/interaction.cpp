@@ -52,8 +52,16 @@ struct PendingHit {
 };
 PendingHit g_hit;
 
-// When each creature was last touched (by slot), so each touch counts once a half second.
+// When each creature or crate was last touched (by slot), so each touch counts once a half second.
 std::map<int, jak::TimeFrame> g_touched;
+
+// True (and the touch noted) when the slot was not touched in the last half second.
+bool touch_due(int slot) {
+    const auto it = g_touched.find(slot);
+    if (it != g_touched.end() && ctx().clock - it->second < jak::seconds(0.5)) return false;
+    g_touched[slot] = ctx().clock;
+    return true;
+}
 
 } // namespace
 
@@ -70,18 +78,16 @@ float Interaction::health() {
 
 void Interaction::pickup_health(float amount) {
     if (amount >= 0.0f) return;
-    // Hero_TakeDamage: Ratchet & Clank's takes one hit point a call; Going Commando's takes a hit's
-    // points at once (the hit's damage, as the game's own hits give it). The instant deaths take
-    // them all.
-    static const auto take = ctx().rac2
-        ? mod().function<openrac::rac2::Hero_TakeDamage::fn>(openrac::rac2::Hero_TakeDamage::name)
-        : mod().function<openrac::rac1::Hero_TakeDamage::fn>(openrac::rac1::Hero_TakeDamage::name);
+    // The instant deaths ask for 1000: all of his health.
     const int n = std::max(static_cast<int>(std::min(-amount, 100.0f) + 0.5f), 1);
-    if (!take) return;
     if (ctx().rac2) {
-        take(n);
+        // Going Commando's Hero_TakeDamage takes the whole hit at once.
+        static const auto take =
+            mod().function<openrac::rac2::Hero_TakeDamage::fn>(openrac::rac2::Hero_TakeDamage::name);
+        if (take) take(n);
     } else {
-        for (int i = 0; i < n; ++i) take(1);
+        // Ratchet & Clank's takes at most one hit point a call.
+        for (int i = 0; i < n; ++i) mod().hero_hurt(1);
     }
 }
 
@@ -185,9 +191,9 @@ int on_moby_hit(void*, const openrac_hit* hit) {
     return 1; // taken: the board's hit state deals with it
 }
 
-// Going Commando's port tells no mod of the game's hits: the hit pending for his moby (its index at
-// +0xA8 into the hit ring, which Moby_GetHitMessage finds) is read each frame instead. Taken, its
-// index is cleared, as on_moby_hit's taken hit is; the last one is left for the game, which kills him.
+// Going Commando does not call on_moby_hit, so the hit waiting for his moby is read each frame
+// (Moby_GetHitMessage; its index in the hit ring is at moby +0xA8). A taken hit's index is cleared.
+// The last hit is left for the game, which kills him.
 void poll_hits() {
     if (!ctx().rac2) return;
     static const auto get =
@@ -206,8 +212,6 @@ void poll_hits() {
     for (int i = 0; i < 3; ++i) h.position[i] = mem.read<float>(entry + 4u * static_cast<uint32_t>(i));
     if (on_moby_hit(nullptr, &h)) mem.write<uint8_t>(moby + 0xA8u, 0xFF);
 }
-
-float last_hit_damage() { return g_hit.damage; }
 
 // The hit as Jak II's enemies send theirs: 'attack with an attack-info of a new id, its mode and
 // damage, and a vector that shoves him away from where it came from.
@@ -251,9 +255,7 @@ void touch_creatures(jak::Target& t) {
         if (!(m.flags & OPENRAC_MOBY_CREATURE) || (m.flags & OPENRAC_MOBY_DEAD) || m.slot == self) continue;
         const float dx = m.position[0] - hero[0], dy = m.position[1] - hero[1], dz = m.position[2] - hero[2];
         if (dx * dx + dy * dy > 1.2f * 1.2f || dz < -1.0f || dz > 2.0f) continue;
-        auto it = g_touched.find(m.slot);
-        if (it != g_touched.end() && ctx().clock - it->second < jak::seconds(0.5)) continue;
-        g_touched[m.slot] = ctx().clock;
+        if (!touch_due(m.slot)) continue;
         static const int kTouching = 0; // a touching-shapes-entry the adapter does not read
         jak::EventMessage e;
         e.message = jak::Symbol("touched");
@@ -276,9 +278,7 @@ void break_crates(jak::Target& t) {
         if (!is_crate(m.oclass) || (m.flags & OPENRAC_MOBY_DEAD)) continue;
         const float dx = m.position[0] - hero[0], dy = m.position[1] - hero[1], dz = m.position[2] - hero[2];
         if (dx * dx + dy * dy > 1.3f * 1.3f || dz < -1.2f || dz > 0.8f) continue;
-        auto it = g_touched.find(m.slot);
-        if (it != g_touched.end() && ctx().clock - it->second < jak::seconds(0.5)) continue;
-        g_touched[m.slot] = ctx().clock;
+        if (!touch_due(m.slot)) continue;
         hit_creature(t, static_cast<jak::Handle>(m.slot) + 1);
     }
 }
