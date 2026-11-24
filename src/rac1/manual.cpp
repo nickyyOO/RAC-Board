@@ -24,7 +24,7 @@ constexpr float kDamp = 1.5f;
 constexpr float kSway = 1.1f;
 constexpr float kSwayGrowth = 0.12f; // more a second
 // How far the nose goes up (radians), and how much more the balance tips it.
-constexpr float kNoseUp = 0.22f;
+constexpr float kNoseUp = 0.35f;
 constexpr float kLeanTilt = 0.12f;
 constexpr float kTiltEase = 12.0f; // a second
 // The ground flickers under the board on bumps: a landing needs this long in the air before it, and

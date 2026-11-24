@@ -270,6 +270,36 @@ void fold_head_into_neck(std::vector<openrac_joint_offset>& offsets) {
     std::copy(q, q + 4, neck->rotation);
 }
 
+// A manual: he and the board lean back together (joint 0 and show_board turn about his feet); he is
+// lifted and moved back so that the board's tail stays where it was, on the ground.
+void lean_on_tail(openrac_pose& pose, float yaw) {
+    const float a = manual().tilt();
+    if (a == 0.0f) return;
+    constexpr float kHalfBoard = 0.55f; // half the board's length (tools/make_board.py)
+    const float rise = kHalfBoard * std::sin(a), back = kHalfBoard * (1.0f - std::cos(a));
+    pose.position[0] -= back * std::cos(yaw);
+    pose.position[1] -= back * std::sin(yaw);
+    pose.position[2] += rise;
+}
+
+// The manual's lean as his root's turn: about his left (y) through his feet, after the spin.
+void lean_root(std::vector<openrac_joint_offset>& offsets) {
+    const float a = manual().tilt();
+    if (a == 0.0f) return;
+    auto root = std::find_if(offsets.begin(), offsets.end(), [](const auto& o) { return o.joint == 0; });
+    if (root == offsets.end()) {
+        openrac_joint_offset r{};
+        r.rotation[3] = 1.0f;
+        offsets.push_back(r);
+        root = offsets.end() - 1;
+    }
+    const float* q = root->rotation;
+    const float s = std::sin(0.5f * a), c = std::cos(0.5f * a);
+    // q times (0, s, 0, c)
+    const float out[4] = {q[0] * c - q[2] * s, q[1] * c + q[3] * s, q[2] * c + q[0] * s, q[3] * c - q[1] * s};
+    std::copy(out, out + 4, root->rotation);
+}
+
 // Ratchet's body: his place and heading, held in his standing pose, the riding pose over it.
 void show_ratchet(openrac_pose& pose, float yaw, bool last) {
     const jak::Target& t = *g_ride.t;
@@ -277,6 +307,7 @@ void show_ratchet(openrac_pose& pose, float yaw, bool last) {
     pose.rotation[0] = 0.0f;
     pose.rotation[1] = 0.0f;
     pose.rotation[2] = yaw;
+    lean_on_tail(pose, yaw);
     to_game_dir(t.control.transv, pose.velocity);
     for (float& v : pose.velocity) v /= kUnit;
     // Held in his standing pose under the riding one; on the last frame, back to the animation of
@@ -351,6 +382,7 @@ void show_ratchet(openrac_pose& pose, float yaw, bool last) {
         std::memcpy(offsets[i].translation, js[i].t, sizeof js[i].t);
     }
     if (ctx().rac2) fold_head_into_neck(offsets);
+    lean_root(offsets);
     g_last_offsets = offsets;
     g_ride.pose_in = std::min(1.0f, g_ride.pose_in + dt / kPoseIn);
     // The joints first: what he wears on his head (Going Commando's helmets) is posed from them as
@@ -394,24 +426,26 @@ void show_board(const openrac_pose& pose, float yaw) {
         qrot(sq, v, a);
         for (int c = 0; c < 3; ++c) out[c] = a[0] * f[c] + a[1] * l[c] + a[2] * u[c];
     };
+    // A manual: the nose up, turned about his left (y) through his feet as he is (lean_root).
+    const float tc = std::cos(manual().tilt()), ts = std::sin(manual().tilt());
+    const auto lean = [&](float v[3]) {
+        const float x = v[0], z = v[2];
+        v[0] = x * tc - z * ts;
+        v[2] = x * ts + z * tc;
+    };
     const float nose_m[3] = {1.0f, 0.0f, 0.0f}, left_m[3] = {0.0f, 1.0f, 0.0f}, up_m[3] = {0.0f, 0.0f, 1.0f};
     float nose[3], left[3], up[3], o[3];
     qrot(bq, nose_m, o);
+    lean(o);
     to_game(o, nose);
     qrot(bq, left_m, o);
+    lean(o);
     to_game(o, left);
     qrot(bq, up_m, o);
+    lean(o);
     to_game(o, up);
-    // A manual: the nose up, about the board's left axis.
-    if (const float tilt = manual().tilt(); tilt != 0.0f) {
-        const float c = std::cos(tilt), s = std::sin(tilt);
-        for (int i = 0; i < 3; ++i) {
-            const float n = nose[i], v = up[i];
-            nose[i] = n * c + v * s;
-            up[i] = v * c - n * s;
-        }
-    }
-    const float place[3] = {bt[kPx] * scale, bt[kPy] * scale, bt[kPz] * scale};
+    float place[3] = {bt[kPx] * scale, bt[kPy] * scale, bt[kPz] * scale};
+    lean(place);
     to_game(place, o);
     const float mat[16] = {size * left[0], size * left[1], size * left[2], 0.0f,
                            size * up[0],   size * up[1],   size * up[2],   0.0f,

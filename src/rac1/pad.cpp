@@ -55,7 +55,8 @@ uint16_t jak_buttons(bool toggle) {
     const bool trick = s.trick.held(held) && !(grind && (s.grind.bits() & s.trick.bits()));
     if (trick) b |= jak::pad::r1;                // spins and flips
     if (grind) b |= jak::pad::circle;            // grind
-    if (s.grab.held(held)) b |= jak::pad::l1;    // duck and grabs
+    // Duck and grabs; on a manual he stands up on the tail, so the board does not duck.
+    if (s.grab.held(held) && !manual().active()) b |= jak::pad::l1;
     if (toggle) b |= jak::pad::r2;                                // Jak II gets on and off the board on R2
     return b;
 }
