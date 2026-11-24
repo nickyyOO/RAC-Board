@@ -165,6 +165,10 @@ int on_moby_hit(void*, const openrac_hit* hit) {
     trace("hit " + std::to_string(hit->victim) + " by " + std::to_string(hit->attacker) + " mask " +
           std::to_string(hit->mask) + " damage " + std::to_string(hit->damage));
     if (interaction().target == nullptr || hit->victim < 0 || hit->victim != mod().figure_slot(-1)) return 0;
+    // Still invulnerable from the last hit or the mount: the hit is dropped, as the game's own hurt
+    // time drops hits on foot (an explosion hits him on several frames).
+    namespace sf = jak::state_flags;
+    if (interaction().target->state_flags & (sf::tinvul1 | sf::tinvul2)) return 1;
     // His last hit point: the game's own hit, which kills him, as the board cannot (off the board).
     openrac_pose pose{};
     const float damage = hit->damage > 0.0f ? hit->damage : 1.0f;
