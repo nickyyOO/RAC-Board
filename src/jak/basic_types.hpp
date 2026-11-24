@@ -105,6 +105,7 @@ enum class BoardTricks : uint32_t {
     board_board_flip = 9, board_noseflip = 10, board_kickflip = 11, board_jump = 12,
     board_duck_jump = 13, board_quick_jump = 14, darkjak = 15, darkjak_bomb0 = 16,
     darkjak_bomb1 = 17, darkjak_giant = 18,
+    board_manual = 19, // RAC-Board's own: riding on the board's tail (rac1/manual.hpp)
 };
 
 // ground-tween-info (game-h.gc).

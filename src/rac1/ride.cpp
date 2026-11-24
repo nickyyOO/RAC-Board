@@ -21,6 +21,7 @@
 #include "rac1/convert.hpp"
 #include "rac1/fx/effects.hpp"
 #include "rac1/interaction.hpp"
+#include "rac1/manual.hpp"
 #include "rac1/pad.hpp"
 #include "rac1/camera.hpp"
 #include "rac1/world/ground.hpp"
@@ -401,6 +402,15 @@ void show_board(const openrac_pose& pose, float yaw) {
     to_game(o, left);
     qrot(bq, up_m, o);
     to_game(o, up);
+    // A manual: the nose up, about the board's left axis.
+    if (const float tilt = manual().tilt(); tilt != 0.0f) {
+        const float c = std::cos(tilt), s = std::sin(tilt);
+        for (int i = 0; i < 3; ++i) {
+            const float n = nose[i], v = up[i];
+            nose[i] = n * c + v * s;
+            up[i] = v * c - n * s;
+        }
+    }
     const float place[3] = {bt[kPx] * scale, bt[kPy] * scale, bt[kPz] * scale};
     to_game(place, o);
     const float mat[16] = {size * left[0], size * left[1], size * left[2], 0.0f,
@@ -629,6 +639,8 @@ RideStep tick_ride(bool toggle) {
     if (mod().has_world()) touch_creatures(t);
     carry(t);
     jak::board_tick(t);
+    manual().update(t, grab_held(), balance_stick(), frame_seconds());
+    effects().manual_meter(manual().active(), manual().balance());
     float feet[3];
     to_game_point(t.control.trans, feet);
     const Ground ground = ground_under(feet);
@@ -702,6 +714,8 @@ void end_ride() {
     if (g_board_prop >= 0) mod().prop_hide(g_board_prop, true);
     hide_guide();
     // A combo still running ends with the ride: its line fades as after a landing.
+    manual().finish(*g_ride.t);
+    effects().manual_meter(false, 0.0f);
     effects().ride_over();
     interaction().target = nullptr;
     interaction().left = false;

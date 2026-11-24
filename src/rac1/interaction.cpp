@@ -15,6 +15,8 @@
 #include "rac1/context.hpp"
 #include "rac1/convert.hpp"
 #include "rac1/fx/effects.hpp"
+#include "rac1/manual.hpp"
+#include "rac1/pad.hpp"
 
 namespace rac1 {
 
@@ -243,5 +245,7 @@ bool Interaction::camera_vectors(jak::Vec& view_flat, jak::Vec& target_move, jak
 }
 
 void Interaction::camera_relative_position(const jak::Vec* v) { camera_relative(v); }
+
+bool Interaction::hold_combo() { return target && manual().hold(*target, grab_held()); }
 
 } // namespace rac1

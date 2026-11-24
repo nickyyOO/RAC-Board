@@ -40,6 +40,8 @@ class Interaction : public jak::Interaction {
     bool process_trans(jak::Handle h, jak::Vec& out) override;
     void shock_effect() override;
     void go_target_state(jak::Target& t, jak::StateId state, const jak::StateArgs& args) override;
+    // A manual on (or landing into one) keeps the combo going.
+    bool hold_combo() override;
 
     // Whether the board's code left for one of the target's own states (the ride is over).
     bool left = false;

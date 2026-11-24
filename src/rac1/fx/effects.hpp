@@ -23,6 +23,9 @@ class Effects : public jak::Effects {
     void particles(const char* group, const jak::Vec& at, float rate) override;
     void trick(jak::BoardTricks trick, float points) override;
     void combo_end() override;
+    void combo_bail() override;
+    // The manual's balance meter over the combo line: on or off, and the balance (-1 to 1).
+    void manual_meter(bool on, float balance);
     // The ride is over: a combo still running ends (its line fades out).
     // The pause menu: the board's own sounds held silent, and back as they were once it closes;
     // Ratchet's, the game's, pause with the game.
@@ -74,6 +77,9 @@ class Effects : public jak::Effects {
     std::string m_record; // the planet's best under them, once the combo is over
     bool m_new_record = false;
     bool m_drawn = false; // whether the HUD has the lines now
+    bool m_bailed = false; // the last combo was lost
+    bool m_meter = false;
+    float m_balance = 0.0f;
 };
 
 Effects& effects();

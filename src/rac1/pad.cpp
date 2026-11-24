@@ -2,10 +2,12 @@
 // Copyright (c) 2026 Mateusz Kłysz
 #include "rac1/pad.hpp"
 
+#include <algorithm>
 #include <cstring>
 
 #include "jak/cpad.hpp"
 #include "rac1/context.hpp"
+#include "rac1/manual.hpp"
 #include "rac1/ride.hpp"
 
 namespace rac1 {
@@ -78,6 +80,8 @@ void on_pad(int port, uint8_t* report, int size) {
     std::memcpy(g_pad.sticks, report + 2, 4);
     std::memcpy(g_pad.pressure, report + 6, 12);
     g_pad.valid = true;
+    // On a manual the right stick keeps his balance: the game and the camera see it in the middle.
+    if (riding() && manual().active()) report[2] = 128;
     // The board's button is the mod's: in play the game does not see it (D-pad Up or Down at any time,
     // R2 or L2 and R2 only while riding, so strafing still works on foot). Menus keep it, and so does
     // the Trespasser puzzle (it picks a ring with D-pad Up and Down). Only a held button needs
@@ -108,7 +112,18 @@ bool toggle_pressed() {
     return pressed;
 }
 
-uint8_t pad_right_x() { return g_pad.valid ? g_pad.sticks[0] : 128; }
+uint8_t pad_right_x() { return g_pad.valid && !manual().active() ? g_pad.sticks[0] : 128; }
+
+bool grab_held() { return g_pad.valid && settings().grab.held(g_pad.held); }
+
+float balance_stick() {
+    if (!g_pad.valid) return 0.0f;
+    const float x = (static_cast<float>(g_pad.sticks[0]) - 128.0f) / 127.0f;
+    constexpr float kDead = 0.15f;
+    if (x > kDead) return std::min(1.0f, (x - kDead) / (1.0f - kDead));
+    if (x < -kDead) return std::max(-1.0f, (x + kDead) / (1.0f - kDead));
+    return 0.0f;
+}
 
 void feed_pad(jak::Target& t, bool toggle) {
     jak::cpad_set_hw(t.pad, jak_buttons(toggle), g_pad.sticks[0], g_pad.sticks[1], g_pad.sticks[2], g_pad.sticks[3]);
