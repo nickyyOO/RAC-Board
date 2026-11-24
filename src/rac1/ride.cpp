@@ -674,11 +674,15 @@ RideStep tick_ride(bool toggle) {
     feed_pad(t, toggle);
 
     // A hit the board takes (its hit state) costs him a hit point, as one on foot does.
+    poll_hits();
     if (deliver_hit(t) && g_ride.rt->pending && g_ride.rt->pending_state == jak::StateId::target_board_hit) {
-        // Going Commando's port has no hero_hurt: the hit goes straight to his health.
-        if (!mod().hero_hurt(1)) interaction().pickup_health(-1.0f);
+        // Going Commando's port has no hero_hurt: the hit's damage goes straight to his health.
+        if (!mod().hero_hurt(1)) interaction().pickup_health(-last_hit_damage());
     }
-    if (mod().has_world()) touch_creatures(t);
+    if (mod().has_world()) {
+        touch_creatures(t);
+        break_crates(t);
+    }
     carry(t);
     jak::board_tick(t);
     manual().update(t, grab_held(), balance_stick(), frame_seconds());

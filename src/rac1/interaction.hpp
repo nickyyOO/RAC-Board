@@ -56,8 +56,14 @@ Interaction& interaction();
 int on_moby_hit(void* user, const openrac_hit* hit);
 // Gives the board the hit the game posted on Ratchet since the last frame, if any.
 bool deliver_hit(jak::Target& t);
+// Going Commando: takes the hit the game left for Ratchet's moby (on_moby_hit is not called there).
+void poll_hits();
+// The damage of the last hit given to the board.
+float last_hit_damage();
 // Sends 'touched for each creature he rides into (at most once each half second).
 void touch_creatures(jak::Target& t);
+// Breaks each crate he rides into, as the wrench does.
+void break_crates(jak::Target& t);
 
 // Where the target is drawn: its trans lifted by the draw offset (the cushion and the shock).
 jak::Vec drawn_trans(const jak::Target& t);
