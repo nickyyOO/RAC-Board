@@ -50,7 +50,7 @@ A mod that gives Ratchet Jak II's JET-Board, in Ratchet & Clank and Going Comman
 1. Get [OpenRAC](https://github.com/OpenRAC/OpenRAC) with mod interface 1.12 or newer (Going Commando needs one with its `rac2.player.update` hook).
 2. In the launcher, open the **Mods** tab.
 3. Paste `https://github.com/mateuszklysz/rac-board` and install.
-4. Play Ratchet & Clank (PAL or NTSC-U) or Going Commando (PAL, USA or USA v2.00) and press **D-pad Up** to get on.
+4. Play Ratchet & Clank (PAL or NTSC-U) or Going Commando (USA v1.01) and press **D-pad Up** to get on.
 
 ## Controls
 

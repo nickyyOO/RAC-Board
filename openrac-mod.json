@@ -14,9 +14,7 @@
       "ntsc"
     ],
     "rac2": [
-      "pal",
-      "ntsc",
-      "ntsc2"
+      "ntsc"
     ]
   },
   "hooks": [

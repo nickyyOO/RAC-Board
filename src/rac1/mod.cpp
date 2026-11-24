@@ -77,9 +77,10 @@ void hero_update(const openrac::Original<void()>& original) {
 
 int load(openrac::Mod& m) {
     const bool rac1 = m.game() == "rac1" && (m.version() == "pal" || m.version() == "ntsc");
-    const bool rac2 = m.game() == "rac2" && (m.version() == "pal" || m.version() == "ntsc" || m.version() == "ntsc2");
+    // Going Commando: OpenRAC moves the hero for a mod on USA v1.01 only so far.
+    const bool rac2 = m.game() == "rac2" && m.version() == "ntsc";
     if (!rac1 && !rac2) {
-        m.fail("RAC-Board knows Ratchet & Clank's PAL and NTSC-U discs and Going Commando's only");
+        m.fail("RAC-Board knows Ratchet & Clank's PAL and NTSC-U discs and Going Commando's USA v1.01 disc only");
         return 1;
     }
     if (!m.has_api_12()) {
