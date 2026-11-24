@@ -27,10 +27,10 @@ constexpr float kSwayGrowth = 0.12f; // more a second
 constexpr float kNoseUp = 0.35f;
 constexpr float kLeanTilt = 0.12f;
 constexpr float kTiltEase = 12.0f; // a second
-// The ground flickers under the board on bumps: a landing needs this long in the air before it, and
-// the manual ends in a jump only once he is off the ground this long.
+// The board leaves the ground for a moment on bumps and steps: a landing needs this long in the air
+// before it, and the manual ends in a jump only once he is off the ground this long.
 constexpr float kLandingAir = 0.25f;
-constexpr float kOffGround = 0.12f;
+constexpr float kOffGround = 0.3f;
 
 bool on_surface(const jak::Target& t) { return (t.control.status & jak::cstat::on_surface) != 0; }
 

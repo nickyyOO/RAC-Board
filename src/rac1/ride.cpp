@@ -458,6 +458,14 @@ void show_board(const openrac_pose& pose, float yaw) {
         if (g_board_prop >= 0) mod().prop_pose(g_board_prop, mat);
     }
     if (g_board_prop >= 0) mod().prop_hide(g_board_prop, false);
+    // A manual: sparks where the tail scrapes the ground.
+    if (manual().active()) {
+        constexpr float kTail = 0.5f; // from the board's middle to its tail (tools/make_board.py)
+        float tail[3];
+        for (int c = 0; c < 3; ++c) tail[c] = p[c] + o[c] - kTail * size * nose[c];
+        tail[2] -= 0.12f; // its underside
+        effects().manual_sparks(tail, yaw);
+    }
     const float nl = std::sqrt(nose[0] * nose[0] + nose[1] * nose[1]);
     if (nl > 0.2f) g_board_nose[0] = nose[0] / nl, g_board_nose[1] = nose[1] / nl;
 }

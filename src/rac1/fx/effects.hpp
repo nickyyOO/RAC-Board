@@ -26,6 +26,8 @@ class Effects : public jak::Effects {
     void combo_bail() override;
     // The manual's balance meter over the combo line: on or off, and the balance (-1 to 1).
     void manual_meter(bool on, float balance);
+    // The manual's sparks under the board's tail, at `at` (game units), the board heading `yaw`.
+    void manual_sparks(const float at[3], float yaw) { m_fx.launch("rac-board-manual-sparks", at, yaw, 0.8f); }
     // The ride is over: a combo still running ends (its line fades out).
     // The pause menu: the board's own sounds held silent, and back as they were once it closes;
     // Ratchet's, the game's, pause with the game.
