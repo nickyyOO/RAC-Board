@@ -64,11 +64,11 @@ The board takes these buttons only while Ratchet rides. On foot the game's contr
 | Spin (stick left or right), flip (stick up or down) | R1 or R2 | R1 |
 | Grind a rail | Hold R1 or R2 with Cross | Circle or Square |
 | Duck, duck jump, grabs in the air | L1 | L1 |
-| Manual: land holding L1, balance with the right stick | L1 + right stick | (RAC-Board's own) |
+| Manual: land holding L1, balance with the left stick | L1 + left stick | (RAC-Board's own) |
 
 - No weapons or gadgets on the board: his hand is empty while he rides, and Circle and Triangle do nothing. Square keeps the game's job. A weapon picked in the pause menu while riding goes to his hand when he gets off.
 - In a trick a faint ring under Ratchet points where the board's nose is (the light orange pointer), and a dot shows where he is going: land with the two together for the boost. Within 40 degrees counts, and the board eases straight as it lands.
-- **Manual.** Land holding L1 to ride on the board's tail. Each second adds points and the combo goes on into the next jump. Keep the mark in the middle of the bar with the right stick, or he bails and loses the combo. Let go of L1 to bank the points.
+- **Manual.** Land holding L1 to ride on the board's tail. Each second adds points and the combo goes on into the next jump. Keep the mark in the middle of the bar with the left stick, or he bails and loses the combo. Let go of L1 to bank the points.
 - The spin, grind and duck buttons can be changed in the mod's settings (Jak II's layout too).
 - **Board camera** (off by default) is Jak II's camera. The right stick swings it round.
 - On a keyboard, **B** gets on and off (you can rebind it).
