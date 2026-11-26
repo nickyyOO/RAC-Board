@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Mateusz Kłysz
 // The manual: land holding the grab button and he rides on the board's tail, keeping the combo
-// going into the next jump. The right stick keeps his balance; past the edge he bails and the combo
+// going into the next jump. The left stick keeps his balance; past the edge he bails and the combo
 // is lost. Let go of the button and the combo's points are his.
 #pragma once
 
@@ -12,7 +12,7 @@ namespace rac1 {
 class Manual {
   public:
     // One frame of the ride, after the board's: starts, balances and ends the manual.
-    // `grab` the grab button held, `stick` the right stick's x (-1 left to 1 right), `dt` seconds.
+    // `grab` the grab button held, `stick` the left stick's x (-1 left to 1 right), `dt` seconds.
     void update(jak::Target& t, bool grab, float stick, float dt);
     // The ride is over: a manual still on gives its points.
     void finish(jak::Target& t);

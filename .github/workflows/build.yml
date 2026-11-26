@@ -25,11 +25,11 @@ on:
 permissions:
   contents: read
 
-# Until sdk.lock's release is out: the SDK from the fork's branch that adds rac2.player.update
-# (feature/rac2-board-api), which the manifest's hooks need.
+# Until sdk.lock's release is out: the SDK from OpenRAC's develop that adds rac2.player.update,
+# which the manifest's hooks need.
 env:
-  SDK_FALLBACK_REPO: nickyyOO/OpenRAC
-  SDK_FALLBACK_REF: 4d30ad372649ebb45009f064eaab16656283b72e
+  SDK_FALLBACK_REPO: OpenRAC/OpenRAC
+  SDK_FALLBACK_REF: e97be74f3b68559291b8c0f086cc6350b0003633
 
 concurrency:
   group: build-${{ github.ref }}

@@ -15,7 +15,7 @@ void on_pad(int port, uint8_t* report, int size);
 bool toggle_pressed();
 // The right stick's x as port 0 last sent it (128 the middle), for the board's camera.
 uint8_t pad_right_x();
-// The board's grab button held now, and the right stick's x from -1 (left) to 1 (right), for the manual.
+// The board's grab button held now, and the left stick's x from -1 (left) to 1 (right), for the manual.
 bool grab_held();
 float balance_stick();
 // The pad into the target's cpad for one frame (read-pad's input), the board's button as R2.

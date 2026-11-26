@@ -28,6 +28,8 @@ class Effects : public jak::Effects {
     void manual_meter(bool on, float balance);
     // The manual's sparks under the board's tail, at `at` (game units), the board heading `yaw`.
     void manual_sparks(const float at[3], float yaw) { m_fx.launch("rac-board-manual-sparks", at, yaw, 0.8f); }
+    // The manual's scrape: Ratchet's grind loop while the tail is on the ground.
+    void manual_scrape(bool on);
     // The ride is over: a combo still running ends (its line fades out).
     // The pause menu: the board's own sounds held silent, and back as they were once it closes;
     // Ratchet's, the game's, pause with the game.

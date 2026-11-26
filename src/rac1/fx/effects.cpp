@@ -92,8 +92,15 @@ constexpr HeroSound kHeroSounds[] = {
     {"board-kickflip", 27}, {"board-noseflip", 27}, {"board-flip", 27},   {"board-method", 27},
     {"board-nosegrab", 27}, {"board-boardspin", 53},
 };
-constexpr int kHeroRailLand = 13;
-constexpr int kHeroGrindLoop = 0;
+// Going Commando's hero table has the same moves at its own entries: 16 his jump, 28 his double
+// jump, 17 his wrench swing, 20 his landing, 0 his rail grind's loop.
+constexpr HeroSound kHeroSoundsRac2[] = {
+    {"board-jump", 16},     {"board-q-jump", 16},   {"board-k-jump", 28}, {"board-kick", 17},
+    {"board-kickflip", 17}, {"board-noseflip", 17}, {"board-flip", 17},   {"board-method", 17},
+    {"board-nosegrab", 17}, {"board-boardspin", 17},
+};
+int rail_land() { return ctx().rac2 ? 20 : 13; }
+int grind_loop() { return 0; }
 
 // Jak's jingles for a trick and its points: none in Ratchet's game, so none here.
 // Left out: the trick's own cues, and the bank's hiss on a turn or a spin (user decision).
@@ -103,11 +110,16 @@ bool silent(const char* name) {
 }
 
 int hero_sound(const char* name) {
-    for (const HeroSound& h : kHeroSounds) {
-        if (std::strcmp(h.name, name) == 0) return h.sound;
+    const HeroSound* const first = ctx().rac2 ? std::begin(kHeroSoundsRac2) : std::begin(kHeroSounds);
+    const HeroSound* const last = ctx().rac2 ? std::end(kHeroSoundsRac2) : std::end(kHeroSounds);
+    for (const HeroSound* h = first; h != last; ++h) {
+        if (std::strcmp(h->name, name) == 0) return h->sound;
     }
     return -1;
 }
+
+// The key of the manual's scrape among the hero's voices (the board's ids count up from 1).
+constexpr uint32_t kScrapeId = 0xFFFFFFFFu;
 
 } // namespace
 
@@ -137,8 +149,8 @@ void Effects::sound_loop(const char* name, uint32_t id, float volume, float pitc
     // The rail: Ratchet's own landing on one, then his grind's loop until it stops.
     if (std::strcmp(name, "board-rail") == 0) {
         if (m_hero_voices.count(id) == 0) {
-            mod().hero_sound_play(kHeroRailLand);
-            m_hero_voices[id] = mod().hero_sound_play(kHeroGrindLoop, true);
+            mod().hero_sound_play(rail_land());
+            m_hero_voices[id] = mod().hero_sound_play(grind_loop(), true);
         }
         return;
     }
@@ -170,6 +182,15 @@ void Effects::sound_stop(uint32_t id) {
     if (it == m_voices.end()) return;
     mod().sound_stop(it->second);
     m_voices.erase(it);
+}
+
+void Effects::manual_scrape(bool on) {
+    const bool playing = m_hero_voices.count(kScrapeId) != 0;
+    if (on && !playing) {
+        m_hero_voices[kScrapeId] = mod().hero_sound_play(grind_loop(), true);
+    } else if (!on && playing) {
+        sound_stop(kScrapeId);
+    }
 }
 
 // Under the pause menu every voice is held silent where it is, and comes back as it was after.
