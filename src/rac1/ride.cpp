@@ -684,6 +684,7 @@ RideStep tick_ride(bool toggle) {
     jak::board_tick(t);
     manual().update(t, grab_held(), balance_stick(), frame_seconds());
     effects().manual_meter(manual().active(), manual().balance());
+    effects().manual_scrape(manual().active() && (t.control.status & jak::cstat::on_surface));
     float feet[3];
     to_game_point(t.control.trans, feet);
     const Ground ground = ground_under(feet);
