@@ -3,7 +3,7 @@
   "id": "rac-board",
   "name": "RAC-Board",
   "version": "0.3.0",
-  "author": "Mateusz Kłysz",
+  "author": "nickyyOO",
   "description": "Jak II's JET-Board for Ratchet. Summon the board and ride it with Jak II's own physics and states: ollies, duck jumps, spins, flips, grabs, wall kicks, and their quirks. Grind every rail in the game (hold R1 or R2 with Cross). Ratchet keeps Clank on his back. Our own board model and sounds, nothing from either game's disc.",
   "license": "MIT",
   "homepage": "https://github.com/mateuszklysz/rac-board",
