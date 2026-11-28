@@ -103,10 +103,11 @@ int rail_land() { return ctx().rac2 ? 20 : 13; }
 int grind_loop() { return 0; }
 
 // Jak's jingles for a trick and its points: none in Ratchet's game, so none here.
-// Left out: the trick's own cues, and the bank's hiss on a turn or a spin (user decision).
+// Left out: the trick's own cues, the bank's hiss on a turn or a spin, and the whoosh of a turn
+// (user decisions).
 bool silent(const char* name) {
     return std::strcmp(name, "do-trick") == 0 || std::strcmp(name, "trick-score") == 0 ||
-           std::strcmp(name, "board-bank") == 0;
+           std::strcmp(name, "board-bank") == 0 || std::strcmp(name, "board-turn") == 0;
 }
 
 int hero_sound(const char* name) {
