@@ -16,8 +16,8 @@ namespace {
 // Points for each second on the tail, and the least time that counts as a manual.
 constexpr float kPointsPerSecond = 300.0f;
 constexpr float kLeastTime = 0.5f;
-// The balance: how fast a lean grows by itself, how hard the stick pushes back, how the swing is
-// damped, and the board's sway, which grows the longer he stays up.
+// The balance: how fast a lean grows by itself, how hard the stick pushes it (to the stick's side),
+// how the swing is damped, and the board's sway, which grows the longer he stays up.
 constexpr float kTip = 2.2f;
 constexpr float kStick = 4.5f;
 constexpr float kDamp = 1.5f;
@@ -68,7 +68,7 @@ void Manual::update(jak::Target& t, bool grab, float stick, float dt) {
             m_time += dt;
             const float sway = kSway * (1.0f + kSwayGrowth * m_time) *
                                (0.6f * std::sin(1.7f * m_time + 0.4f) + 0.4f * std::sin(3.3f * m_time + 1.3f));
-            const float accel = kTip * m_balance + sway - kStick * stick;
+            const float accel = kTip * m_balance + sway + kStick * stick;
             m_speed += accel * dt;
             m_speed *= std::max(0.0f, 1.0f - kDamp * dt);
             m_balance += m_speed * dt;
